@@ -1,0 +1,678 @@
+
+
+<!-- vscode ai + weinatlas 2 
+
+änderungen: 
+- data aus weinatlas2 übernommen und eingefügt
+- hinweis zu data: daten sind statisch, dh. sie sind im code programmiert und können nur im code geändert werde, preisänderungen etc. können nur hier erfolgen. alternative??
+- breakpoints hinzugefügt (rote kommentarpunkte)
+- gps koordinaten für künstler exakt eingetragen
+-  
+
+-->
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Weinatlas 4 — Interaktive Regionen-Karte</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#100d0b;
+  --panel:#1c1613;
+  --panel2:#251d18;
+  --parchment:#eee3d2;
+  --parchment-dim:#b6a690;
+  --gold:#c9a35d;
+  --gold-bright:#e6c17f;
+  --wine:#7c2434;
+  --wine-bright:#b23a4e;
+  --line:rgba(201,163,93,0.22);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--parchment);font-family:'Inter',sans-serif;}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 30% 15%, rgba(124,36,52,0.16), transparent 55%),
+    radial-gradient(ellipse at 80% 85%, rgba(201,163,93,0.08), transparent 55%),
+    var(--ink);
+  overflow-x:hidden;
+}
+
+.wrap{max-width:1180px;margin:0 auto;padding:40px 24px 80px;}
+
+header{text-align:center;margin-bottom:8px;}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--gold);opacity:.85;margin-bottom:14px;
+}
+h1{
+  font-family:'Fraunces',serif;font-weight:500;font-style:italic;
+  font-size:clamp(34px,5vw,58px);margin:0 0 6px;color:var(--parchment);
+  letter-spacing:-0.01em;
+}
+.subtitle{color:var(--parchment-dim);font-size:15px;max-width:580px;margin:0 auto 6px;line-height:1.5;}
+.hint{
+  font-size:12.5px;color:var(--gold-bright);opacity:.75;margin-top:10px;
+  font-family:'IBM Plex Mono',monospace;
+}
+
+.stage{
+  position:relative;margin-top:26px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent 40%);
+  overflow:hidden;
+}
+svg#map{display:block;width:100%;height:auto;}
+
+.hub-label{font-family:'Fraunces',serif;font-style:italic;font-size:15px;fill:var(--parchment);}
+.hub-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--gold-bright);letter-spacing:.12em;}
+
+.path-line{fill:none;stroke:var(--gold);stroke-width:1;stroke-dasharray:2 5;opacity:.38;stroke-linecap:round;}
+.path-line.active{opacity:.95;stroke:var(--gold-bright);stroke-width:1.4;}
+
+.node{cursor:pointer;}
+.node circle.halo{fill:var(--wine);opacity:0;transition:opacity .25s;}
+.node:hover circle.halo, .node.active circle.halo{opacity:.22;}
+.node circle.pin{fill:var(--panel2);stroke:var(--gold);stroke-width:1.4;transition:fill .2s, stroke .2s, r .2s;}
+.node.active circle.pin{fill:var(--wine-bright);stroke:var(--gold-bright);}
+.node text.label{font-family:'Fraunces',serif;font-weight:500;font-size:13px;fill:var(--parchment);pointer-events:none;}
+.node text.count{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:var(--gold-bright);opacity:.8;pointer-events:none;}
+.node.active text.label{fill:var(--gold-bright);}
+
+.zone{cursor:pointer;}
+.zone circle.ring{fill:rgba(124,36,52,0.16);stroke:var(--gold);stroke-width:1.1;stroke-dasharray:3 3;transition:fill .2s,stroke .2s;}
+.zone:hover circle.ring, .zone.open circle.ring{fill:rgba(178,58,78,0.32);stroke:var(--gold-bright);}
+.zone circle.dot{fill:var(--gold-bright);}
+.zone text.zlabel{font-family:'Fraunces',serif;font-weight:600;font-size:13.5px;fill:var(--parchment);pointer-events:none;}
+.zone text.zcount{font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--parchment-dim);pointer-events:none;}
+
+.map-modal-backdrop{position:fixed;inset:0;background:rgba(6,4,3,0.85);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .35s;z-index:40;}
+.map-modal-backdrop.show{opacity:1;pointer-events:auto;}
+
+.map-modal{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);
+  width:90vw;height:90vh;max-width:1200px;max-height:800px;
+  background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  z-index:41;opacity:0;pointer-events:none;
+  transition:opacity .35s, transform .35s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.map-modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
+
+.map-modal-header{
+  padding:20px 30px;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.map-modal-header h2{
+  font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:24px;
+  margin:0;color:var(--parchment);
+}
+.map-modal-close{
+  background:none;border:1px solid var(--line);color:var(--parchment-dim);
+  width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.map-modal-close:hover{color:var(--gold-bright);border-color:var(--gold);}
+
+.map-modal-content{flex:1;position:relative;overflow:hidden;}
+#leafletMap{width:100%;height:100%;}
+
+/* Leaflet Styling */
+.leaflet-container{background:var(--ink)!important;}
+.leaflet-control-zoom{border:1px solid var(--line)!important;}
+.leaflet-control-zoom a{background:var(--panel)!important;color:var(--gold)!important;border:1px solid var(--line)!important;}
+.leaflet-control-zoom a:hover{background:var(--panel2)!important;color:var(--gold-bright)!important;}
+.leaflet-popup{box-shadow:0 4px 12px rgba(0,0,0,0.5);}
+.leaflet-popup-content-wrapper{background:var(--panel)!important;color:var(--parchment)!important;border:1px solid var(--line);}
+.leaflet-popup-content{margin:0!important;}
+.leaflet-popup-tip{background:var(--panel)!important;border-color:var(--panel)!important;}
+
+.region-popup{padding:12px;color:var(--parchment);}
+.region-popup-name{font-family:'Fraunces',serif;font-weight:600;font-size:14px;color:var(--gold-bright);margin-bottom:6px;}
+.region-popup-info{font-size:12px;color:var(--parchment-dim);margin:3px 0;}
+.region-popup-button{
+  display:block;margin-top:10px;padding:8px 12px;background:var(--wine-bright);
+  color:var(--parchment);border:none;border-radius:4px;cursor:pointer;
+  font-size:12px;font-family:'IBM Plex Mono',monospace;
+  transition:.2s;text-align:center;width:100%;
+}
+.region-popup-button:hover{background:var(--wine);}
+
+.panel-backdrop{position:fixed;inset:0;background:rgba(6,4,3,0.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
+.panel-backdrop.show{opacity:1;pointer-events:auto;}
+.panel{
+  position:fixed;top:0;right:0;height:100%;width:min(480px,92vw);
+  background:linear-gradient(180deg, var(--panel), var(--panel2));
+  border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  z-index:51;overflow-y:auto;padding:30px 26px 60px;
+}
+.panel.show{transform:translateX(0);}
+.panel-close{
+  position:absolute;top:20px;right:22px;background:none;border:1px solid var(--line);color:var(--parchment-dim);
+  width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.panel-close:hover{color:var(--gold-bright);border-color:var(--gold);}
+.panel-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+.panel h2{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:32px;margin:0 0 4px;color:var(--parchment);}
+.panel .panel-meta{color:var(--parchment-dim);font-size:13px;margin-bottom:22px;}
+.region-block{margin-top:26px;}
+.region-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:14px;}
+.producer{margin-bottom:16px;}
+.producer-name{font-family:'Fraunces',serif;font-weight:600;font-size:15.5px;color:var(--parchment);margin-bottom:5px;}
+.wine-row{display:flex;align-items:baseline;gap:6px;font-size:13.5px;color:var(--parchment-dim);padding:3px 0;}
+.wine-label{flex-shrink:1;}
+.wine-dots{flex:1;border-bottom:1px dotted var(--line);height:1px;transform:translateY(-4px);}
+.wine-price{font-family:'IBM Plex Mono',monospace;color:var(--gold-bright);font-size:13px;white-space:nowrap;}
+
+.legend{display:flex;justify-content:center;gap:22px;margin-top:18px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--parchment-dim);letter-spacing:.05em;}
+.legend span{display:flex;align-items:center;gap:6px;}
+.legend .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;}
+
+footer{text-align:center;margin-top:50px;color:var(--parchment-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;opacity:.7;}
+
+@media (max-width:640px){
+  .panel{width:100vw;}
+  h1{font-size:30px;}
+  .map-modal{width:95vw;height:95vh;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Herkunft & Erzeuger</div>
+    <h1>Der Weinatlas</h1>
+    <p class="subtitle">Interaktive Weltkarte: Klicke auf ein Land, um die Anbaugebiete auf einer detaillierten Karte zu erkunden.</p>
+    <p class="hint" id="hintText">▸ Land anklicken zum Erkunden</p>
+  </header>
+
+  <div class="stage">
+    <svg id="map" viewBox="0 0 1000 680"></svg>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="width:6px;height:6px;"></i> wenige Positionen</span>
+    <span><i class="dot" style="width:10px;height:10px;"></i> umfangreiche Auswahl</span>
+    <span>‣ Klick auf Marker = Winzerliste</span>
+  </div>
+
+  <footer>Chefs Warehouse Hamburg · Der Weinatlas · Jahrgangsänderungen vorbehalten</footer>
+</div>
+
+<!-- Map Modal -->
+<div class="map-modal-backdrop" id="mapBackdrop"></div>
+<div class="map-modal" id="mapModal">
+  <div class="map-modal-header">
+    <h2 id="mapModalTitle">Anbaugebiete</h2>
+    <button class="map-modal-close" id="mapModalClose">✕</button>
+  </div>
+  <div class="map-modal-content">
+    <div id="leafletMap"></div>
+  </div>
+</div>
+
+<!-- Panel for Wines -->
+<div class="panel-backdrop" id="backdrop"></div>
+<div class="panel" id="panel">
+  <button class="panel-close" id="panelClose">✕</button>
+  <div id="panelContent"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<script>
+/* ================= DATA ================= */
+const DATA = {
+  "Deutschland": {
+    bearing: 198, dist: 95,
+    anchors: [[54.8,9.0],[52.5,14.5],[47.5,13.0],[49.5,6.0]],
+    regions: {
+      "Mosel": { lat:49.9, lon:7.1, producers:[
+        {name:"Markus Molitor", wines:[
+          ["2024 · Haus Klosterberg · Pinot Blanc","38"],
+          ["2023 · Zeltinger Himmelreich Kabinett Grüne Kapsel · Riesling","45"],
+          ["2022 · Wehlener Klosterberg · Ein Stern* · Chardonnay","68"]]},
+        {name:"Dr. Loosen", wines:[
+          ["2024 · Pinot Blanc","36"],
+          ["2024 · Graacher Domprobst GG · Riesling","55"],
+          ["2023 · Ürziger Würzgarten Alte Reben GG · Riesling","59"]]},
+        {name:"Clemens Busch", wines:[
+          ["2023 · Marienburg GG · Riesling","89"],
+          ["2022 · Marienburg Falkenlay GG · Riesling","92"]]},
+        {name:"Nik Weis – St. Urbanshof", wines:[
+          ["2024 · Goldtröpfchen Kabinett · Riesling","52"],
+          ["2024 · Goldtröpfchen Spätlese · Riesling","62"]]},
+        {name:"Heymann Löwenstein", wines:[
+          ["2022 · Kirchberg GG · Riesling","79"],
+          ["2021 · Roth Lay GG · Riesling","120"]]},
+        {name:"J.J. Prüm", wines:[
+          ["2024 · Wehlener Sonnenuhr Kabinett · Riesling","89"],
+          ["2023 · Graacher Himmelreich Spätlese · Riesling","89"]]}
+      ]},
+      "Rheingau": { lat:50.012, lon:8.347, producers:[
+        {name:"Künstler", wines:[
+          ["2023 · Hochheimer Kirchenstück „Im Stein“ · 1G · Riesling","49"],
+          ["2022 · Hölle GG · Riesling","92"],
+          ["2021 · Assmannshäuser Höllenberg GG · Pinot Noir","120"]]}
+      ]},
+      "Nahe": { lat:49.8, lon:7.6, producers:[
+        {name:"Zehn Morgen", wines:[["2020 · Steinberg Monopol · Riesling","58"],["2022 · Pinot Noir","38"]]}
+      ]},
+      "Rheinhessen": { lat:49.8, lon:8.2, producers:[
+        {name:"Dreissigacker", wines:[["2024 · Pinot Blanc","39"],["2024 · Chardonnay","45"],["2022 · Westhofener · Chardonnay","64"]]},
+        {name:"Kissinger-Bähr", wines:[["2024 · 0 Ohm Weiss · Chardonnay / Pinot Blanc","49"],["2024 · 0 Ohm · Pinot Noir","55"]]},
+        {name:"Saalwächter", wines:[["2023 · Chardonnay","82"],["2023 · R · Chardonnay","120"],["2022 · Grauer Stein · Silvaner","130"],["2023 · Pinot Noir","49"]]},
+        {name:"Weedenborn", wines:[["2022 · Westhofen Terra Rossa · Sauvignon Blanc","59"]]}
+      ]},
+      "Pfalz": { lat:49.35, lon:8.15, producers:[
+        {name:"A. Christmann", wines:[
+          ["2022 · Ruppertsberger Reiterpfad · 1G · Riesling","79"],["2021 · Vogelsang GG · Riesling","140"],["2021 · Vogelsang GG · Pinot Noir","160"]]},
+        {name:"Bassermann-Jordan", wines:[["2024 · Ruppertsberger Reiterpfad · 1G · Riesling","55"],["2023 · Jesuitengarten GG · Riesling","120"]]},
+        {name:"Dr. Wehrheim", wines:[["2024 · Mandelberg GG · Pinot Blanc","110"],["2023 · Birkenweiler aus dem Keuper · Chardonnay","52"]]},
+        {name:"Seckinger", wines:[["2025 · Maikammer · Chardonnay","45"],["2024 · Maikammer Kapellenberg · Chardonnay","80"],["2024 · 1 Tal · Riesling","92"]]},
+        {name:"Messmer", wines:[["2024 · Pinot Gris","36"]]},
+        {name:"Christmann & Kaufmann", wines:[["2021 · Cuvée No. 204 · Pinot Noir / Chardonnay / Pinot Blanc (Sekt)","80"]]}
+      ]},
+      "Franken": { lat:49.8, lon:10.0, producers:[
+        {name:"Fürst", wines:[["2024 · pur Mineral · Silvaner","45"],["2023 · R · Chardonnay","140"],["2023 · Klingenberger · Pinot Noir","89"],["2023 · Hundsrück GG · Pinot Noir","185"]]}
+      ]},
+      "Baden": { lat:48.3, lon:7.9, producers:[
+        {name:"Franz Keller", wines:[
+          ["2024 · Vom Löss · Pinot Gris","36"],["2023 · Oberbergener Bassgeige · 1G · Chardonnay","52"],
+          ["2023 · Drei Dörfer · Chardonnay","80"],["2021 · Eichberg GG · Pinot Noir","135"]]},
+        {name:"Hanspeter Ziereisen", wines:[["2023 · Jaspis Nägelin · Chardonnay","125"],["2022 · HA (ehem. Hard) · Chardonnay","64"]]},
+        {name:"Salwey", wines:[["2022 · Oberrotweil · Pinot Blanc","59"],["2022 · Steingrubenberg GG · Chardonnay","80"]]}
+      ]}
+    }
+  },
+  "Frankreich": {
+    bearing: 232, dist: 155,
+    anchors: [[50.9,1.6],[47.2,-2.9],[43.5,-1.5],[43.7,7.3],[48.6,7.75]],
+    regions: {
+      "Champagne": { lat:49.05, lon:4.0, producers:[
+        {name:"Perrier-Jouët", wines:[
+          ["Blason Grand · Brut","110"],["Blason Rosé · Brut","130"],["Blanc de Blancs · Brut","135"],
+          ["2016 · Belle Epoque · Brut","250"],["2012 · Belle Epoque · Brut","550"],
+          ["2014 · Belle Epoque Rosé · Brut","520"],["2012 · Belle Epoque Blanc de Blancs · Brut","580"]]},
+        {name:"Girard Bonnet", wines:[
+          ["Au Bout du Chemin · 1er Cru · Extra Brut","125"],["A Mi-Chemin · Grand Cru · Extra Brut","125"],
+          ["2019 · Les Musettes · Grand Cru · Extra Brut","135"],["Recueil · Extrait N°3 Rosé · Extra Brut","150"]]},
+        {name:"La Closerie", wines:[["„&“ · Extra Brut","210"],["Les Béguines · Extra Brut","260"]]},
+        {name:"Jacquesson", wines:[["N°748 · Extra-Brut","155"]]},
+        {name:"Jacques Lassaigne", wines:[["Les Vignes de Montgueux · Brut Nature","140"]]},
+        {name:"Frédéric Savart", wines:[["L'Ouverture · 1er Cru · Brut","140"]]},
+        {name:"Domaine Vincey", wines:[["Oger Grand Cru · Brut Nature","130"]]},
+        {name:"Benoit Marguet", wines:[["Yuman · Brut Nature","130"],["Shaman · Brut Nature","130"]]},
+        {name:"Aurore Casanova", wines:[["Cuvée Aurore · Brut","98"]]},
+        {name:"Billecart-Salmon", wines:[["Le Reserve · Brut","135"],["Le Rosé · Brut","155"]]},
+        {name:"Taittinger", wines:[["Reserve · Brut","130"],["Prestige Rosé · Brut","150"],["2014 · Comtes de Champagne","310"]]},
+        {name:"RSVR – Maison Mumm", wines:[["2018 · Blanc de Noir · Grand Cru · Brut","180"],["Foujita Rosé · Grand Cru · Brut","180"]]},
+        {name:"Charles Heidsieck", wines:[["Reserve · Brut","125"],["Rosé · Brut","155"],["Blanc de Blancs · Brut","155"],["2018 · Vintage · Brut","210"]]},
+        {name:"Ruinart", wines:[["R de Ruinart · Brut","145"],["Rosé · Brut","165"],["Blanc de Blancs · Brut","165"]]},
+        {name:"Dom Pérignon", wines:[["Dom Pérignon","340"],["Dom Pérignon Rosé","540"]]},
+        {name:"Krug", wines:[["Grand Cuvée 173ème Édition","380"]]}
+      ]},
+      "Burgund": { lat:47.05, lon:4.75, producers:[
+        {name:"Château Fuissé", wines:[["2024 · Bourgogne Blanc","58"],["2023 · Tête de Cuvée","79"],["2023 · Le Clos · Pouilly-Fuissé · 1er Cru Monopole","135"]]},
+        {name:"Domaine Antoine Jobard", wines:[
+          ["2023 · Bourgogne Blanc","85"],["2022 · Bourgogne Aligoté","72"],["2022 · Le Trezin · Puligny-Montrachet","150"],
+          ["2022 · En La Barre · Meursault","150"],["2020 · Blagny · 1er Cru · Meursault","230"],["2020 · Pommard","140"]]},
+        {name:"Domaine Arlaud", wines:[["2023 · Scritch · Aligoté","59"],["2022 · Scritch · Bourgogne Blanc","59"],["2021 · Gevrey Chambertin","130"]]},
+        {name:"Domaine de Cassiopée", wines:[["2023 · Les Côtés · Bourgogne Hautes-Côtes de Beaune","98"],["2022 · Mitancherie · Aligoté","86"],["2023 · Le Saugeot · Maranges","120"]]},
+        {name:"Domaine Fabien Coche", wines:[["2023 · Bourgogne Blanc","86"],["2022 · Meursault (Weiß)","140"],["2022 · Meursault (Rot)","120"]]},
+        {name:"Domaine Hubert Lamy", wines:[["2023 · La Princée · Saint Aubin","140"],["2023 · Les Frionnes · Saint Aubin 1er Cru","165"],["2023 · Les Tremblots · Puligny-Montrachet","225"]]},
+        {name:"Domaine Jean-Yves Devevey", wines:[["2023 · Aligoté","72"],["2023 · La Chaume · Rully Blanc","89"],["2021 · Volnay","135"]]},
+        {name:"Domaine Roulot", wines:[["2018 · Meursault","270"],["2016 · Bourgogne Blanc","140"]]},
+        {name:"Henri & Gilles Buisson", wines:[["2023 · Bourgogne Blanc","70"],["2023 · Les Vignes de Marguerite · Meursault","175"],["2023 · Les Reuchaux · Puligny-Montrachet","180"]]},
+        {name:"Maison Meyer", wines:[["2023 · Aligoté","120"],["2023 · Bourgogne Blanc","120"],["2023 · Au Clou · Côtes-de-Nuits Villages","155"]]},
+        {name:"Remi Jobard", wines:[["2023 · Bourgogne Blanc","89"],["2023 · Sous la Velle · Meursault","155"],["2023 · Charmes · 1er Cru · Meursault","235"],["2022 · En Busigny Vieille Vigne · Aligoté","89"]]},
+        {name:"Thomas Morey", wines:[["2023 · Bourgogne Blanc","75"],["2023 · Chassagne-Montrachet","135"],["2023 · Clos Saint-Jean · 1er Cru · Chassagne-Montrachet","140"]]},
+        {name:"Thomas-Collardot", wines:[["2023 · Bourgogne Blanc · Hautes-Côtes de Beaune","82"]]},
+        {name:"Chantal Lescure", wines:[["2022 · Les Verduns · Bourgogne","79"],["2022 · Volnay","105"],["2018 · Les Bertins · 1er Cru · Pommard","160"],["2018 · Les Suchots · 1er Cru · Vosne-Romanée","290"]]},
+        {name:"Clos de Moulin aux Moines", wines:[["2017 · Clos Orgelot · 1er Cru Monopole · Pommard","135"]]},
+        {name:"Domaine Y. Clerget", wines:[["2023 · Clos du Verseuil · 1er Cru · Volnay","235"],["2020 · Rugiens · 1er Cru · Pommard","270"]]}
+      ]},
+      "Loire": { lat:47.3, lon:1.2, producers:[
+        {name:"Domaine des Roches Neuves", wines:[["2024 · L'Insolite · Saumur Blanc · Chenin Blanc","72"]]},
+        {name:"Domaine Gerard Boulay", wines:[["2020 · Clos de Beaujeu · Sancerre","115"]]},
+        {name:"Domaine Jonathan Pabiot", wines:[["2023 · Elisa · Pouilly Fumé","59"]]}
+      ]},
+      "Rhône": { lat:44.1, lon:4.8, producers:[
+        {name:"Vignobles Brunier", wines:[["2024 · Clos la Roquete · Viognier","98"],["2021 · Les Pallières Racines","95"],["2021 · La Crau · Vieux Télégraphe Rouge","160"]]},
+        {name:"Château Pesquié", wines:[["2024 · Chardonnay","38"]]},
+        {name:"L'Oratoire des Papes", wines:[["2022 · Châteauneuf-du-Pape AOC","105"]]}
+      ]},
+      "Provence": { lat:43.4, lon:6.6, producers:[
+        {name:"Château Sainte Marguerite", wines:[["2025 · Château Sainte Marguerite · Rosé","55"],["2025 · Fantastique · Rosé","75"]]},
+        {name:"Cave d'Esclans", wines:[["2025 · Whispering Angel · Rosé","59"]]},
+        {name:"Château d'Esclans", wines:[["2025 · Château d'Esclans · Rosé","82"]]}
+      ]},
+      "Bordeaux": { lat:44.9, lon:-0.35, producers:[
+        {name:"Château Mangot · Saint-Émilion", wines:[["2019 · Selection · Grand Cru","80"]]},
+        {name:"Château Angélus · Saint-Émilion", wines:[["2020 · Premier · Grand Cru Classé A","550"]]},
+        {name:"Château Pavie · Saint-Émilion", wines:[["2021 · Premier · Grand Cru Classé A","550"]]},
+        {name:"Château L'Évangile · Pomerol", wines:[["2021","420"]]},
+        {name:"Château Cos d'Estournel · Saint-Estèphe", wines:[["2021 · 2ème Cru Classé","360"]]},
+        {name:"Château de Graviers · Margaux", wines:[["2018","89"]]},
+        {name:"Château Pontet-Canet · Pauillac", wines:[["2020 · 5ème Cru Classé","225"]]}
+      ]}
+    }
+  },
+  "Österreich": {
+    bearing: 168, dist: 155,
+    anchors: [[47.3,10.4],[48.75,15.0],[46.6,14.3],[48.2,16.9]],
+    regions: {
+      "Wachau": { lat:48.4, lon:15.5, producers:[
+        {name:"Nikolaihof", wines:[["2019 · Smaragd · Grüner Veltliner","89"]]}
+      ]},
+      "Steiermark": { lat:46.8, lon:15.4, producers:[
+        {name:"Sattlerhof", wines:[["2021 · Gamlitz Spätabfüllung · Sauvignon Blanc","58"]]},
+        {name:"Tement", wines:[["2025 · Kalk & Kreide · Sauvignon Blanc","52"]]}
+      ]}
+    }
+  },
+  "Italien": {
+    bearing: 148, dist: 205,
+    anchors: [[46.5,8.9],[45.6,13.8],[40.6,17.9],[38.2,15.6]],
+    regions: {
+      "Piemont": { lat:44.7, lon:8.0, producers:[
+        {name:"Azienda Agricola Brovia", wines:[["2024 · Roero Arneis","59"]]},
+        {name:"Maffrei", wines:[["2024 · Langhe DOC · Chardonnay","64"],["2024 · Langhe Dolcetto DOC","64"],["2024 · Langhe Nebbiolo DOC","86"]]},
+        {name:"Valfaccenda", wines:[["2023 · Roero Arneis","59"]]},
+        {name:"Vietti", wines:[["2025 · Roero Arneis","52"],["2021 · La Crena · Barbera d'Asti","86"],["2020 · Roncaglie · Barbaresco","160"],["2018 · Castiglione · Barolo DOCG","98"]]},
+        {name:"Borgogno", wines:[["2015 · Barolo Riserva","260"]]},
+        {name:"Crissante Alessandria", wines:[["2020 · Barolo Galina DOCG","120"]]},
+        {name:"Dave Fletscher", wines:[["2022 · Faset · Barbaresco DOCG","115"]]}
+      ]},
+      "Südtirol": { lat:46.5, lon:11.3, producers:[
+        {name:"Cantina Terlan", wines:[["2025 · Terlaner","49"],["2023 · Vorberg · Pinot Blanc","72"],["2023 · Quartz · Sauvignon Blanc","110"]]},
+        {name:"Wassererhof", wines:[["2022 · Riserva · Sauvignon Blanc","64"]]}
+      ]},
+      "Toskana": { lat:43.05, lon:11.5, producers:[
+        {name:"Le Macioche", wines:[["2019 · Brunello di Montalcino Riserva","155"],["2018 · Brunello di Montalcino","130"]]}
+      ]},
+      "Veneto": { lat:45.7, lon:12.2, producers:[
+        {name:"Montelvini (Prosecco)", wines:[["Cuvée Dell'Erede · DOC Treviso · Extra Dry","54"],["Alkoholfreier Sparkling · 0%","54"]]}
+      ]}
+    }
+  },
+  "Spanien": {
+    bearing: 254, dist: 225,
+    anchors: [[43.5,-6.5],[36.0,-5.6],[41.4,2.2]],
+    regions: {
+      "Rioja": { lat:42.5, lon:-2.6, producers:[
+        {name:"Remírez Ganuza", wines:[["2022 · Blanco Reserva · Malvasia / Macabeu","75"]]}
+      ]},
+      "Priorat": { lat:41.2, lon:0.8, producers:[
+        {name:"Terroir al Límit", wines:[["2022 · Terroir Históric Blanc · Garnacha Blanc","55"],["2021 · Terres die Cuques Negre · Carignan & Grenache","70"]]}
+      ]},
+      "Ribera del Duero": { lat:41.6, lon:-3.7, producers:[
+        {name:"Vega Sicilia", wines:[["2022 · Alion","160"],["2016 · Unico","595"]]}
+      ]}
+    }
+  },
+  "Portugal": {
+    bearing: 260, dist: 290,
+    anchors: [[41.9,-8.6],[37.0,-8.5],[38.7,-9.1]],
+    regions: {
+      "Minho": { lat:41.9, lon:-8.6, producers:[
+        {name:"Quinta de Soalheiro", wines:[["2024 · Granit · Albarinho","45"],["2023 · Terramatter · Albarinho","52"]]}
+      ]}
+    }
+  },
+  "Südafrika": {
+    bearing: 179, dist: 300,
+    anchors: [[-34.8,18.4],[-33.0,17.9],[-34.0,20.8],[-32.3,18.5]],
+    regions: {
+      "Western Cape": { lat:-33.8, lon:18.6, producers:[
+        {name:"Simelia · Groenberg", wines:[
+          ["2025 · Delucius · Merlot Bianco","36"],["2023 · Blanc de Noir · Delucius (Rosé)","38"],
+          ["2021 · Delucius · Merlot","38"],["2021 · Delucius · Syrah","38"],
+          ["2020 · Ignatius · Cabernet Sauvignon","105"],["2018 · Fluvius · Merlot","105"],["2018 · Senectus · Syrah","105"]]},
+        {name:"Diemersdal", wines:[["2025 · Sauvignon Blanc","38"]]},
+        {name:"McFarlane Wines", wines:[["2024 · Capitoline Wolf · White","52"],["2024 · Monday's Child · Chenin Blanc","58"],["2024 · Saturday's Child · Pinotage","65"]]}
+      ]},
+      "Swartland": { lat:-33.3, lon:18.75, producers:[
+        {name:"The Sadie Family", wines:[
+          ["2023 · Vogelfrei","92"],["2022 · Palladius","135"],["2022 · Columella","185"],
+          ["2024 · Skurfberg · Chenin Blanc","135"],["2024 · Skerpioen · Chenin Blanc / Palomino","135"],
+          ["2024 · 'T Voetpad","165"],["2024 · Mev. Kirsten · Chenin Blanc","225"],
+          ["2024 · Soldaat · Grenache","135"],["2022 · Pofadder · Cinsault","105"]]},
+        {name:"David & Nadia", wines:[["2022 · Rondevlei · Chenin Blanc","140"],["2021 · Chenin Blanc","75"],["2020 · Aristargos","75"],["2021 · Grenache","75"],["2020 · Elpidios","75"]]},
+        {name:"Mullineux & Leeu", wines:[["2024 · Kloof Street · Chenin Blanc","39"],["2024 · Iron · Chenin Blanc","135"],["2023 · Kloof Street (Rot)","39"],["2023 · Granite · Syrah","180"]]},
+        {name:"Damascene", wines:[["2023 · Chenin Blanc","98"],["2023 · Semillon","98"]]}
+      ]},
+      "Stellenbosch": { lat:-33.93, lon:18.86, producers:[
+        {name:"Kanonkop", wines:[["2022 · Black Label · Pinotage","270"]]},
+        {name:"Keermont", wines:[["2023 · White Blend Terrasse","52"],["2021 · Riverside · Chenin Blanc","75"],["2019 · Steepside · Syrah","82"]]},
+        {name:"Meerlust", wines:[["2024 · Chardonnay","72"],["2023 · Meerlust · Pinot Noir","79"]]},
+        {name:"Lievland", wines:[["2024 · Lievland Rosé · Shiraz / Mourvèdre / Cinsault","38"],["2024 · Bushvine · Pinotage","38"]]},
+        {name:"Stellenrust (MCC)", wines:[["2022 · Clement de Lure · Cabernet Franc","65"]]}
+      ]},
+      "Wellington": { lat:-33.64, lon:19.0, producers:[
+        {name:"Bosman", wines:[["2024 · Optenhorst · Chenin Blanc","59"]]}
+      ]},
+      "Franschhoek": { lat:-33.91, lon:19.12, producers:[
+        {name:"Anthonij Rupert", wines:[["2020 · Syrah","75"],["2020 · Cabernet Franc","89"]]}
+      ]},
+      "Simonsberg-Paarl": { lat:-33.77, lon:18.96, producers:[
+        {name:"Babylonstoren (MCC)", wines:[["2019 · Sprankel · Pinot Noir · Brut","82"]]}
+      ]},
+      "Overberg": { lat:-34.35, lon:19.6, producers:[
+        {name:"Landskein Vines", wines:[["2024 · Horizon · Chardonnay","58"],["2024 · Horizon · Chenin Blanc","45"],["2024 · Horizon · Sauvignon Blanc","45"],["2024 · Pinot Noir","85"],["2023 · Petit Verdot","85"]]},
+        {name:"Catherine Marshall", wines:[["2024 · Amatra Jono's Wave White · Chenin Blanc","39"],["2024 · FAC – Fermented in Clay · Chenin Blanc","64"],["2024 · Sandstone Soils · Pinot Noir","52"],["2024 · Finite Elements · Pinot Noir","140"]]},
+        {name:"Sauerwein", wines:[["2024 · CHI · Riesling","92"],["2022 · OM · Pinot Noir","92"],["2022 · NOM · Pinot Noir","98"]]}
+      ]},
+      "Walker Bay": { lat:-34.4, lon:19.35, producers:[
+        {name:"Alheit Vineyards", wines:[["2024 · Cartology · Chenin Blanc / Semillon","82"],["2024 · Fire by Night · Chenin Blanc","105"],["2024 · Nautical Down · Chenin Blanc","105"],["2024 · Hulkikrans · Chenin Blanc","135"],["2024 · HEREAFTER HERE · Chenin Blanc","59"]]},
+        {name:"Hamilton Russell Vineyards", wines:[["2025 · Southern Right · Sauvignon Blanc","45"],["2024 · Chardonnay","89"]]},
+        {name:"Maanschijn", wines:[["2025 · Herbarium · Sauvignon Blanc","48"],["2023 · Herbarium · Cape Red","52"]]},
+        {name:"Restless River", wines:[["2022 · AVA MARIE · Chardonnay","92"],["2023 · Pinot Noir","68"],["2022 · Le Luc · Pinot Noir","92"]]},
+        {name:"Crystallum", wines:[["2024 · The Agnes · Chardonnay","64"],["2024 · Ferrum · Chardonnay","89"],["2024 · Peter Max · Pinot Noir","75"]]},
+        {name:"Beaumont", wines:[["2025 · Botrivier · Chenin Blanc","45"],["2022 · Hope Marguerite · Chenin Blanc","79"],["2021 · Jackals River · Pinotage","64"],["2021 · R&B · Cabernet Franc","79"]]}
+      ]},
+      "Hemel-en-Aarde": { lat:-34.35, lon:19.28, producers:[
+        {name:"Bosman", wines:[["2024 · Pinot Noir","49"]]},
+        {name:"Hamilton Russell Vineyards", wines:[["2024 · Pinot Noir","98"]]}
+      ]}
+    }
+  },
+  "USA": {
+    bearing: 300, dist: 300,
+    anchors: [[42.0,-124.2],[32.7,-117.2],[39.5,-120.0],[36.7,-119.7]],
+    regions: {
+      "Sonoma Valley": { lat:38.4, lon:-122.5, producers:[
+        {name:"Arnot-Roberts", wines:[["2024 · Watson Ranch · Chardonnay","89"],["2024 · Trout Gulch · Chardonnay","130"]]},
+        {name:"Hanzell Vineyards", wines:[["2022 · Chardonnay","120"]]}
+      ]}
+    }
+  },
+  "Australien": {
+    bearing: 78, dist: 300,
+    anchors: [[-37.8,144.96],[-37.5,149.9],[-36.0,147.0]],
+    regions: {
+      "Gippsland": { lat:-38.2, lon:146.8, producers:[
+        {name:"Patrick Sullivan", wines:[["2023 · Baw Baw Shire · Chardonnay","105"]]}
+      ]}
+    }
+  }
+};
+
+
+/* ================= HELPERS ================= */
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
+function wineCountRegion(regionObj){ return regionObj.producers.reduce((s,p)=>s+p.wines.length,0); }
+function wineCountCountry(country){ return Object.values(DATA[country].regions).reduce((s,r)=>s+wineCountRegion(r),0); }
+
+/* ================= SVG WORLD MAP ================= */
+const svg = document.getElementById('map');
+const CX=500, CY=340;
+function polar(bearingDeg, r){ const rad=(bearingDeg-90)*Math.PI/180; return [CX+r*Math.cos(rad), CY+r*Math.sin(rad)]; }
+
+[110,190,270,340].forEach(r=> svg.appendChild(el('circle',{cx:CX,cy:CY,r:r,fill:'none',stroke:'rgba(201,163,93,0.06)','stroke-width':5})));
+
+const hub = el('g',{});
+hub.appendChild(el('circle',{cx:CX,cy:CY,r:9,fill:'#b23a4e',stroke:'#e6c17f','stroke-width':1.5}));
+hub.appendChild(el('circle',{cx:CX,cy:CY,r:16,fill:'none',stroke:'#c9a35d','stroke-width':1,opacity:.5}));
+svg.appendChild(hub);
+const hubT=el('text',{x:CX,y:CY-24,'text-anchor':'middle',class:'hub-label'}); hubT.textContent="Hamburg"; svg.appendChild(hubT);
+const hubS=el('text',{x:CX,y:CY+30,'text-anchor':'middle',class:'hub-sub'}); hubS.textContent="CHEFS WAREHOUSE"; svg.appendChild(hubS);
+
+const nodeEls = {};
+Object.keys(DATA).forEach(country=>{
+  const {bearing, dist} = DATA[country];
+  const [x,y] = polar(bearing, dist);
+  const count = wineCountCountry(country);
+  const r = 7 + Math.min(count,60)/60*7;
+
+  const line = el('path',{d:`M${CX},${CY} Q${(CX+x)/2+(y-CY)*0.08},${(CY+y)/2-(x-CX)*0.08} ${x},${y}`, class:'path-line'});
+  svg.appendChild(line);
+
+  const g = el('g',{class:'node','data-country':country});
+  g.appendChild(el('circle',{cx:x,cy:y,r:r+14,class:'halo'}));
+  g.appendChild(el('circle',{cx:x,cy:y,r:r,class:'pin'}));
+  const cnt=el('text',{x:x,y:y-r-24,'text-anchor':'middle',class:'count'}); cnt.textContent=count+" Positionen"; g.appendChild(cnt);
+  const label=el('text',{x:x,y:y-r-10,'text-anchor':'middle',class:'label'}); label.textContent=country; g.appendChild(label);
+  svg.appendChild(g);
+
+  nodeEls[country]={g,line,x,y};
+  g.addEventListener('click', ()=> openMapModal(country));
+});
+
+/* ================= MAP MODAL WITH LEAFLET ================= */
+const mapModal = document.getElementById('mapModal');
+const mapBackdrop = document.getElementById('mapBackdrop');
+const mapModalTitle = document.getElementById('mapModalTitle');
+const mapModalClose = document.getElementById('mapModalClose');
+let leafletMap = null;
+let currentCountry = null;
+
+function openMapModal(country){
+  currentCountry = country;
+  mapModalTitle.textContent = country + " · Anbaugebiete";
+  mapBackdrop.classList.add('show');
+  mapModal.classList.add('show');
+  
+  setTimeout(() => {
+    if(leafletMap) leafletMap.remove();
+    leafletMap = L.map('leafletMap').setView([0, 0], 3);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+      className: 'leaflet-tiles'
+    }).addTo(leafletMap);
+    
+    const regions = DATA[country].regions;
+    const regionArray = Object.entries(regions);
+    
+    if(regionArray.length === 0) return;
+    
+    // Berechne Bounds für Zoom
+    let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+    regionArray.forEach(([name, region]) => {
+      minLat = Math.min(minLat, region.lat);
+      maxLat = Math.max(maxLat, region.lat);
+      minLon = Math.min(minLon, region.lon);
+      maxLon = Math.max(maxLon, region.lon);
+    });
+    
+    const bounds = [[minLat-1, minLon-1], [maxLat+1, maxLon+1]];
+    leafletMap.fitBounds(bounds, {padding: [50, 50]});
+    
+    // Marker für jede Region
+    regionArray.forEach(([name, region]) => {
+      const count = wineCountRegion(region);
+      const marker = L.circleMarker([region.lat, region.lon], {
+        radius: 8 + Math.min(count, 50)/50*8,
+        fillColor: '#b23a4e',
+        color: '#e6c17f',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.7
+      }).addTo(leafletMap);
+      
+      const popupContent = `
+        <div class="region-popup">
+          <div class="region-popup-name">${name}</div>
+          <div class="region-popup-info"><strong>${country}</strong></div>
+          <div class="region-popup-info">${count} Weine · ${region.producers.length} Erzeuger</div>
+          <button class="region-popup-button" onclick="openRegionPanel('${country}', '${name}')">Winzer anzeigen</button>
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent);
+    });
+  }, 100);
+}
+
+function closeMapModal(){
+  mapBackdrop.classList.remove('show');
+  mapModal.classList.remove('show');
+  if(leafletMap) {
+    leafletMap.remove();
+    leafletMap = null;
+  }
+}
+
+mapModalClose.addEventListener('click', closeMapModal);
+mapBackdrop.addEventListener('click', closeMapModal);
+
+/* ================= PANEL FOR WINES ================= */
+const panel = document.getElementById('panel');
+const backdrop = document.getElementById('backdrop');
+const panelContent = document.getElementById('panelContent');
+
+function openRegionPanel(country, regionName){
+  const regionObj = DATA[country].regions[regionName];
+  let html = `<div class="panel-eyebrow">${country}</div>
+    <h2>${regionName}</h2>
+    <div class="panel-meta">${regionObj.producers.length} Erzeuger · ${wineCountRegion(regionObj)} Positionen</div>
+    <div class="region-block">`;
+  regionObj.producers.forEach(p=>{
+    html += `<div class="producer"><div class="producer-name">${p.name}</div>`;
+    p.wines.forEach(([label,price])=>{
+      html += `<div class="wine-row"><span class="wine-label">${label}</span><span class="wine-dots"></span><span class="wine-price">€ ${price}</span></div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+  panelContent.innerHTML = html;
+  panel.classList.add('show');
+  backdrop.classList.add('show');
+}
+
+function closePanel(){
+  panel.classList.remove('show');
+  backdrop.classList.remove('show');
+}
+
+document.getElementById('panelClose').addEventListener('click', closePanel);
+backdrop.addEventListener('click', closePanel);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closePanel(); closeMapModal(); } });
+</script>
+</body>
+</html>

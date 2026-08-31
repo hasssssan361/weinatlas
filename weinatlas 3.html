@@ -1,0 +1,423 @@
+
+
+//vscode ai (nur kartenimplementierung)
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wein-Atlas - Interaktive Weltkarte</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #8b0000 0%, #dc143c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            height: 600px;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        #map {
+            flex: 1;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .info-panel {
+            width: 300px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-panel h2 {
+            color: #8b0000;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .wine-region {
+            background: white;
+            border-left: 4px solid #dc143c;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .wine-region:hover {
+            background: #fff3f3;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(220, 20, 60, 0.2);
+        }
+        
+        .wine-region h3 {
+            color: #8b0000;
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+        
+        .wine-region p {
+            color: #666;
+            font-size: 0.85em;
+            margin: 3px 0;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 15px;
+        }
+        
+        .legend h3 {
+            color: #8b0000;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.85em;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin: 20px;
+            padding: 10px 20px;
+            background: #dc143c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .back-link:hover {
+            background: #8b0000;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+                gap: 15px;
+            }
+            
+            .info-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            #map {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="weinatlas 1.html" class="back-link">← Zurück</a>
+    
+    <div class="container">
+        <header>
+            <h1>🍇 Wein-Atlas</h1>
+            <p>Entdecke die weltweit besten Weinanbau-Regionen</p>
+        </header>
+        
+        <div class="content">
+            <div id="map"></div>
+            
+            <div class="info-panel">
+                <h2>Wein-Regionen</h2>
+                <div id="regions-list"></div>
+                
+                <div class="legend">
+                    <h3>Legende</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff6b6b;"></div>
+                        <span>Rotwein-Regionen</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ffd700;"></div>
+                        <span>Weißwein-Regionen</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #daa520;"></div>
+                        <span>Dessertwein-Regionen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <script>
+        // Initialisiere Karte
+        const map = L.map('map').setView([48, 10], 3);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Wein-Regionen mit Koordinaten und Informationen
+        const wineRegions = [
+            {
+                name: "Bordeaux",
+                country: "Frankreich",
+                type: "Rotwein",
+                lat: 44.84,
+                lng: -0.57,
+                description: "Weltberühmte Rotwein-Region. Bekannt für Cabernet Sauvignon und Merlot.",
+                color: "#ff6b6b"
+            },
+            {
+                name: "Burgund",
+                country: "Frankreich",
+                type: "Rotwein & Weißwein",
+                lat: 47.12,
+                lng: 4.83,
+                description: "Elegante Pinot Noirs und exquisite Chardonnays.",
+                color: "#8b4789"
+            },
+            {
+                name: "Toskana",
+                country: "Italien",
+                type: "Rotwein",
+                lat: 43.13,
+                lng: 12.08,
+                description: "Heimat des Chianti und Brunello di Montalcino.",
+                color: "#ff6b6b"
+            },
+            {
+                name: "Rheingau",
+                country: "Deutschland",
+                type: "Weißwein",
+                lat: 50.06,
+                lng: 7.98,
+                description: "Erstklassige Riesling-Weine vom Rhein.",
+                color: "#ffd700"
+            },
+            {
+                name: "Napa Valley",
+                country: "USA",
+                type: "Rotwein",
+                lat: 38.30,
+                lng: -122.47,
+                description: "Kaliforniens berühmtestes Anbaugebiet. Exzellente Cabernets.",
+                color: "#ff6b6b"
+            },
+            {
+                name: "Douro Valley",
+                country: "Portugal",
+                type: "Portwein",
+                lat: 41.18,
+                lng: -7.27,
+                description: "Terrassierte Weinberge mit weltberühmtem Portwein.",
+                color: "#daa520"
+            },
+            {
+                name: "La Rioja",
+                country: "Spanien",
+                type: "Rotwein",
+                lat: 42.35,
+                lng: -2.51,
+                description: "Spaniens führende Weinregion mit Tempranillo-Trauben.",
+                color: "#ff6b6b"
+            },
+            {
+                name: "Mosel",
+                country: "Deutschland",
+                type: "Weißwein",
+                lat: 49.88,
+                lng: 7.08,
+                description: "Steile Weinberge mit feinen Riesling-Weinen.",
+                color: "#ffd700"
+            },
+            {
+                name: "Barossa Valley",
+                country: "Australien",
+                type: "Rotwein",
+                lat: -34.59,
+                lng: 139.04,
+                description: "Australiens älteste und berühmteste Weinregion.",
+                color: "#ff6b6b"
+            },
+            {
+                name: "Central Otago",
+                country: "Neuseeland",
+                type: "Weißwein",
+                lat: -44.94,
+                lng: 168.81,
+                description: "Weltklasse Pinot Noir und Sauvignon Blanc.",
+                color: "#ffd700"
+            },
+            {
+                name: "Stellenbosch",
+                country: "Südafrika",
+                type: "Rotwein",
+                lat: -33.94,
+                lng: 18.86,
+                description: "Südafrikas führendes Weinanbaugebiet. Hervorragende Cabernet Sauvignon.",
+                color: "#ff6b6b"
+            },
+            {
+                name: "Cape Winelands",
+                country: "Südafrika",
+                type: "Rotwein & Weißwein",
+                lat: -33.70,
+                lng: 18.93,
+                description: "Vielfältige Weinvielfalt mit atemberaubenden Berglandschaften.",
+                color: "#8b4789"
+            },
+            {
+                name: "Franschhoek",
+                country: "Südafrika",
+                type: "Weißwein",
+                lat: -33.88,
+                lng: 19.12,
+                description: "Chardonnay und Sauvignon Blanc in idyllischer Tallandschaft.",
+                color: "#ffd700"
+            },
+            {
+                name: "Constantia",
+                country: "Südafrika",
+                type: "Dessertwein",
+                lat: -34.01,
+                lng: 18.40,
+                description: "Südafrikas älteste Weinregion mit legendären süßen Weinen.",
+                color: "#daa520"
+            }
+        ];
+        
+        // Marker auf der Karte hinzufügen
+        wineRegions.forEach(region => {
+            const marker = L.circleMarker([region.lat, region.lng], {
+                radius: 10,
+                fillColor: region.color,
+                color: '#333',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.7
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <div style="font-family: Arial; font-size: 12px;">
+                    <strong style="color: #8b0000; font-size: 14px;">${region.name}</strong><br>
+                    <em>${region.country}</em><br>
+                    <span style="color: #666;">Typ: ${region.type}</span><br>
+                    <div style="margin-top: 8px; color: #555; font-size: 11px;">
+                        ${region.description}
+                    </div>
+                </div>
+            `);
+            
+            marker.on('click', function() {
+                highlightRegion(region.name);
+            });
+        });
+        
+        // Regions-Liste im Info-Panel
+        const regionsList = document.getElementById('regions-list');
+        wineRegions.forEach(region => {
+            const regionDiv = document.createElement('div');
+            regionDiv.className = 'wine-region';
+            regionDiv.innerHTML = `
+                <h3>${region.name}</h3>
+                <p><strong>${region.country}</strong></p>
+                <p style="color: #999; font-size: 0.8em; margin-top: 5px;">${region.type}</p>
+            `;
+            
+            regionDiv.addEventListener('click', () => {
+                map.setView([region.lat, region.lng], 6);
+                highlightRegion(region.name);
+            });
+            
+            regionsList.appendChild(regionDiv);
+        });
+        
+        // Highlight-Funktion
+        function highlightRegion(regionName) {
+            const regions = document.querySelectorAll('.wine-region');
+            regions.forEach(region => {
+                region.style.background = region.textContent.includes(regionName) ? '#fff3f3' : 'white';
+                region.style.borderLeftColor = region.textContent.includes(regionName) ? '#8b0000' : '#dc143c';
+                region.style.borderLeftWidth = region.textContent.includes(regionName) ? '6px' : '4px';
+            });
+        }
+        
+        // GeoJSON laden und anzeigen (optional)
+        fetch('custom.geo.json')
+            .then(response => response.json())
+            .then(data => {
+                // Hier könnte man die GeoJSON-Länder-Grenzen anzeigen
+                console.log('GeoJSON Daten geladen:', data);
+            })
+            .catch(error => console.log('GeoJSON konnte nicht geladen werden:', error));
+    </script>
+</body>
+</html>
