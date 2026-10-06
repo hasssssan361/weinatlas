@@ -1,18 +1,31 @@
 
 
-<!-- online version 1.0-->
+<!-- weinatlas 8, basierend auf weinatlas 7
 
+änderungen:
+- NEU (nur Deutschland): die Anbaugebiete (Mosel, Rheingau, Nahe, Rheinhessen, Pfalz, Franken,
+  Baden) werden in der Länderansicht als längliche, dem echten Flusstal/Gebietsverlauf
+  angenäherte Flächen dargestellt statt als einzelner Punkt — angelehnt an die Kartendarstellung
+  auf deutscheweine.de/regionen.
+- Wichtig: KEINE amtlichen Vermessungsdaten. Ein echter offener Datensatz mit den genauen
+  Anbaugebiets-Grenzen wurde gesucht (u.a. Landwirtschaftskammer RLP), war aber über den
+  öffentlichen WFS nicht abrufbar (leere Feature-Liste trotz offener Lizenz-Angabe). Die Flächen
+  hier sind deshalb von Hand nachgezeichnete Annäherungen (Verlauf entlang bekannter Orte/Flüsse),
+  keine 1:1-Kopie einer amtlichen Karte.
+- Andere Länder unverändert (weiterhin ein Punkt pro Anbaugebiet).
+- Rheingau-Lagen (Künstler-Beispiel) aus weinatlas 7 bleiben wie gehabt erhalten.
+- Nachbesserung: Gebietsnamen (Pfalz, Mosel …) nicht mehr mitten in der Fläche eingeblendet
+  (Name kommt weiterhin per Hover-Tooltip); Flächen-Umrisse per Catmull-Rom-Kurve geglättet statt
+  eckiger Geradensegmente; die namensgebenden Flüsse (Rhein, Mosel, Nahe, Main) als dünne Linien
+  zur Orientierung ergänzt.
 
-
-
-
-
+-->
 
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Weinatlas — Chefs Warehouse Hamburg</title>
+<title>Weinatlas 8 — Chefs Warehouse Hamburg</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -85,9 +98,29 @@ svg#map{display:block;width:100%;height:auto;}
 /* Country (zoomed) view */
 .landmass{fill:#241c18;stroke:var(--gold);stroke-width:1.2;opacity:.95;}
 .zone{cursor:pointer;}
-.zone circle.ring{fill:rgba(124,36,52,0.22);stroke:var(--gold);stroke-width:1.2;transition:fill .2s,stroke .2s,r .2s;}
-.zone:hover circle.ring, .zone.open circle.ring{fill:var(--wine-bright);stroke:var(--gold-bright);}
-.zone circle.dot{fill:var(--gold-bright);pointer-events:none;}
+.zone .glow{stroke:none;opacity:.45;transition:opacity .2s;filter:blur(3px);}
+.zone:hover .glow, .zone.open .glow{opacity:.8;}
+.zone .ring{stroke:var(--gold-bright);stroke-width:1.1;transition:stroke .2s,filter .2s;}
+.zone:hover .ring, .zone.open .ring{stroke:var(--parchment);filter:brightness(1.3);}
+.zone circle.dot{fill:var(--parchment);pointer-events:none;}
+.zone .lage-label{font-family:'IBM Plex Mono',monospace;font-size:8.5px;fill:var(--parchment-dim);pointer-events:none;letter-spacing:.03em;opacity:0;transition:opacity .2s;}
+.zone:hover .lage-label, .zone.open .lage-label{opacity:1;fill:var(--gold-bright);}
+
+/* Lagen-Flächen (Voronoi-Tessellation): Umriss erscheint mit dem Gebietspanel ("context"),
+   Farbfüllung erst wenn im Panel der jeweilige Wein angeklickt wird ("show"). */
+.zone.lage{pointer-events:none;}
+.zone.lage.context{pointer-events:auto;}
+.zone.lage .cell{fill-opacity:0;stroke:var(--parchment-dim);stroke-opacity:0;stroke-width:1;stroke-dasharray:2 2;transition:fill-opacity .3s,stroke-opacity .3s,stroke-width .3s;}
+.zone.lage.context .cell{stroke-opacity:.55;}
+.zone.lage:hover .cell{stroke-opacity:.9;stroke:var(--gold-bright);}
+.zone.lage.show .cell{fill-opacity:.82;stroke:var(--parchment);stroke-opacity:.9;stroke-dasharray:none;stroke-width:1.4;}
+.zone.lage .lage-label{opacity:0;}
+.zone.lage.context .lage-label{opacity:.7;}
+.zone.lage.show .lage-label{opacity:1;fill:var(--parchment);font-weight:600;}
+/* Gebiets-Flächen (von Hand angenäherter Talverlauf, aktuell nur Deutschland) */
+.zone.region-area .area{fill-opacity:.68;stroke:var(--parchment-dim);stroke-width:1;stroke-opacity:.5;transition:fill-opacity .2s,stroke-opacity .2s;}
+.zone.region-area:hover .area, .zone.region-area.open .area{fill-opacity:.88;stroke:var(--parchment);stroke-opacity:.9;}
+
 .country-title{font-family:'Fraunces',serif;font-style:italic;font-size:26px;fill:var(--parchment);}
 .country-note{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:var(--parchment-dim);letter-spacing:.05em;}
 
@@ -113,6 +146,23 @@ svg#map{display:block;width:100%;height:auto;}
 }
 .backbtn.show{opacity:1;pointer-events:auto;transform:translateY(0);}
 .backbtn:hover{border-color:var(--gold);color:var(--parchment);}
+
+.zoomctrls{
+  position:absolute;top:18px;right:18px;z-index:20;
+  display:flex;flex-direction:column;gap:6px;
+  opacity:0;pointer-events:none;transform:translateY(-6px);
+  transition:opacity .25s, transform .25s;
+}
+.zoomctrls.show{opacity:1;pointer-events:auto;transform:translateY(0);}
+.zoomctrls button{
+  width:32px;height:32px;border-radius:8px;cursor:pointer;
+  background:rgba(28,22,19,0.85);border:1px solid var(--line);
+  color:var(--gold-bright);font-family:'IBM Plex Mono',monospace;font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.zoomctrls button:hover{border-color:var(--gold);color:var(--parchment);}
+#stage.zoomable svg#map{cursor:grab;}
+#stage.zoomable svg#map.grabbing{cursor:grabbing;}
 
 /* Panel */
 .panel-backdrop{position:fixed;inset:0;background:rgba(6,4,3,0.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;}
@@ -142,6 +192,13 @@ svg#map{display:block;width:100%;height:auto;}
 .wine-label{flex-shrink:1;}
 .wine-dots{flex:1;border-bottom:1px dotted var(--line);height:1px;transform:translateY(-4px);}
 .wine-price{font-family:'IBM Plex Mono',monospace;color:var(--gold-bright);font-size:13px;white-space:nowrap;}
+
+.lage-hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold-bright);opacity:.75;margin:20px 0 6px;}
+.lage-title{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px;padding-top:12px;border-top:1px dashed var(--line);}
+.wine-row.lage-wine{cursor:pointer;transition:color .15s;}
+.wine-row.lage-wine:hover .wine-label{color:var(--gold-bright);}
+.wine-row.lage-wine.active .wine-label{color:var(--gold-bright);font-weight:600;}
+.wine-row.lage-wine.active{color:var(--parchment);}
 
 .legend{display:flex;justify-content:center;gap:22px;margin-top:18px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--parchment-dim);letter-spacing:.05em;}
 .legend span{display:flex;align-items:center;gap:6px;}
@@ -212,7 +269,6 @@ footer{text-align:center;margin-top:50px;color:var(--parchment-dim);font-family:
 <button id="logoutBtn" style="display:none;">Abmelden</button>
 <div id="appContent">
 
-
 <div class="wrap">
   <header>
     <div class="eyebrow">Herkunft &amp; Erzeuger</div>
@@ -223,6 +279,11 @@ footer{text-align:center;margin-top:50px;color:var(--parchment-dim);font-family:
 
   <div class="stage" id="stage">
     <button class="backbtn" id="backBtn">← Zurück zur Weltkarte</button>
+    <div class="zoomctrls" id="zoomCtrls">
+      <button id="zoomIn" title="Vergrößern">+</button>
+      <button id="zoomOut" title="Verkleinern">−</button>
+      <button id="zoomReset" title="Zoom zurücksetzen">⟲</button>
+    </div>
     <svg id="map" viewBox="0 0 1000 680"></svg>
     <div class="tooltip" id="tooltip"><div class="t-name" id="ttName"></div><div class="t-info" id="ttInfo"></div></div>
   </div>
@@ -231,6 +292,7 @@ footer{text-align:center;margin-top:50px;color:var(--parchment-dim);font-family:
     <span><i class="dot" style="width:6px;height:6px;"></i> wenige Positionen</span>
     <span><i class="dot" style="width:10px;height:10px;"></i> umfangreiche Auswahl</span>
     <span>‣ Hover = Name · Klick = Weinliste</span>
+    <span>‣ Länderansicht: Mausrad/Buttons = Zoom · Ziehen = Verschieben</span>
   </div>
 
   <footer>Chefs Warehouse Hamburg · Auszug aus der Wein- &amp; Champagnerkarte · Jahrgangsänderungen vorbehalten</footer>
@@ -257,6 +319,17 @@ const DATA = {
   "Deutschland": {
     bearing: 198, dist: 95,
     anchors: [[54.8,9.0],[52.5,14.5],[47.5,13.0],[49.5,6.0]],
+    /* Echte, vom Nutzer selbst in QGIS nachgezeichnete Gebietsflächen (Vorlage: deutscheweine.de),
+       aus einer .gpkg-Datei exportiert — deutlich präziser als die frühere Handschätzung. */
+    shapes: {
+      "Mosel": { polygons:[[[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.46435,6.3487],[49.48688,6.35804],[49.51192,6.36842],[49.523,6.37301],[49.55713,6.38716],[49.5746,6.3944],[49.60229,6.40588],[49.61925,6.41291],[49.64136,6.42207],[49.66316,6.43111],[49.67977,6.43799],[49.69562,6.44456],[49.71038,6.45068],[49.72019,6.45475],[49.738,6.46213],[49.75107,6.47572],[49.76392,6.50334],[49.7819,6.50912],[49.80438,6.51747],[49.82172,6.52518],[49.83907,6.53224],[49.86219,6.54894],[49.87889,6.56821],[49.89302,6.59134],[49.90137,6.60868],[49.91165,6.62923],[49.91743,6.63822],[49.92899,6.65749],[49.93734,6.67612],[49.94697,6.70567],[49.95018,6.70952],[49.9444,6.76733],[49.94697,6.77632],[49.96175,6.80908],[49.98101,6.82899],[49.98294,6.8322],[50.00285,6.85918],[50.01698,6.87523],[50.02854,6.88936],[50.03561,6.89643],[50.05102,6.90992],[50.06644,6.92662],[50.07286,6.93946],[50.07736,6.95937],[50.08186,6.98892],[50.08764,7.0069],[50.09406,7.03067],[50.10562,7.06664],[50.11654,7.09811],[50.11847,7.10453],[50.12168,7.11674],[50.12553,7.1328],[50.13195,7.15592],[50.13774,7.16555],[50.15379,7.18418],[50.17756,7.21886],[50.18976,7.24263],[50.20261,7.26575],[50.21288,7.28502],[50.21931,7.30686],[50.22188,7.33833],[50.22316,7.35888],[50.22252,7.38137],[50.21545,7.41862],[50.20453,7.43532],[50.18719,7.4456],[50.15957,7.44881],[50.1069,7.43468],[50.08442,7.42376],[50.06387,7.4077],[50.03754,7.36274],[49.99707,7.28952],[49.99129,7.25547],[49.97909,7.22464],[49.95725,7.18932],[49.92642,7.14821],[49.90008,7.12059],[49.84742,7.08655],[49.80502,7.04608],[49.79796,7.03581],[49.78897,7.02425],[49.76777,6.99791],[49.75107,6.95488],[49.73309,6.93754],[49.70418,6.92276],[49.66308,6.91827],[49.64445,6.88551],[49.6316,6.83156],[49.63032,6.76797],[49.61747,6.72172],[49.58857,6.64336],[49.53847,6.54188],[49.53333,6.52582],[49.52241,6.5072],[49.51406,6.49628],[49.49544,6.48407],[49.47745,6.47701],[49.46332,6.47444],[49.44791,6.47444],[49.42607,6.47187],[49.41552,6.46677],[49.41701,6.46189],[49.42331,6.44125],[49.42704,6.42904],[49.43629,6.39872],[49.44869,6.35812],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344],[49.453,6.344]]] },
+      "Rheingau": { polygons:[[[49.93886,7.73839],[49.93918,7.73879],[49.9392,7.73937],[49.93924,7.74084],[49.93911,7.7422],[49.93878,7.7432],[49.93777,7.7457],[49.93629,7.74871],[49.93436,7.75237],[49.91683,7.77824],[49.91552,7.78012],[49.91487,7.78215],[49.91411,7.78452],[49.91396,7.78766],[49.91338,7.85856],[49.96131,8.03543],[49.96361,8.19422],[49.93911,8.30264],[49.90297,8.35164],[49.85764,8.35103],[49.84417,8.34061],[49.8313,8.31428],[49.8215,8.27017],[49.81967,8.20892],[49.82487,8.19698],[49.83192,8.19575],[49.83988,8.19177],[49.84319,8.18607],[49.84338,8.18509],[49.84351,8.18427],[49.84407,8.18354],[49.84522,8.18347],[49.84382,8.17789],[49.84627,8.169],[49.85531,8.15997],[49.85898,8.15917],[49.86511,8.15633],[49.86756,8.15289],[49.86763,8.14753],[49.86767,8.13838],[49.86744,8.12854],[49.86763,8.12257],[49.86763,8.11847],[49.86771,8.11212],[49.86771,8.10013],[49.86683,8.05396],[49.86748,8.03724],[49.86503,8.02284],[49.85845,7.99329],[49.84474,7.94069],[49.83907,7.91711],[49.81924,7.85854],[49.81914,7.78704],[49.81915,7.78688],[49.81918,7.78676],[49.81923,7.78664],[49.81932,7.78655],[49.87719,7.72705],[49.87753,7.72674],[49.87763,7.72667],[49.87773,7.72663],[49.87882,7.72651],[49.88078,7.72639],[49.91179,7.72619],[49.91447,7.72656],[49.91591,7.72733],[49.91849,7.72852],[49.93886,7.73839]]] },
+      "Nahe": { polygons:[[[49.63825,7.30266],[49.61962,7.28275],[49.60485,7.25963],[49.61191,7.24743],[49.62604,7.24164],[49.65752,7.24036],[49.68128,7.241],[49.69734,7.25963],[49.71468,7.2789],[49.7256,7.29945],[49.73459,7.33414],[49.73716,7.36625],[49.7378,7.39194],[49.7378,7.43241],[49.74101,7.46773],[49.74294,7.49471],[49.7468,7.50563],[49.75515,7.52297],[49.76799,7.54224],[49.77634,7.55509],[49.77634,7.59363],[49.77377,7.62253],[49.77249,7.67905],[49.77185,7.78696],[49.72432,7.78567],[49.70954,7.78567],[49.6922,7.77026],[49.68128,7.7497],[49.66715,7.73493],[49.66394,7.72273],[49.66522,7.69768],[49.66265,7.66621],[49.6588,7.63473],[49.64339,7.59041],[49.64017,7.54609],[49.64274,7.49086],[49.65559,7.44847],[49.66201,7.41314],[49.6633,7.37203],[49.64852,7.33028],[49.63825,7.30266]],[[49.5924,7.26975],[49.61553,7.29608],[49.63126,7.32274],[49.65085,7.37187],[49.64475,7.42101],[49.6409,7.4695],[49.62998,7.52731],[49.63255,7.58415],[49.64154,7.62333],[49.64957,7.65256],[49.65438,7.72417],[49.6804,7.77235],[49.69549,7.78069],[49.65406,7.77459],[49.62388,7.76721],[49.56286,7.77395],[49.53716,7.78487],[49.51147,7.79675],[49.47775,7.78969],[49.45238,7.76143],[49.44307,7.72738],[49.44692,7.66765],[49.45431,7.61209],[49.47486,7.57901],[49.50922,7.52602],[49.51693,7.48138],[49.53042,7.42936],[49.53652,7.37059],[49.53813,7.31374],[49.54359,7.29287],[49.55065,7.27424],[49.5924,7.26975]]] },
+      "Rheinhessen": { polygons:[[[49.80781,7.81715],[49.81231,7.87158],[49.82644,7.91654],[49.84699,7.97178],[49.85727,8.03087],[49.86241,8.06555],[49.85856,8.13492],[49.84443,8.16318],[49.81745,8.19658],[49.78919,8.22099],[49.7545,8.23898],[49.72496,8.25054],[49.70055,8.26338],[49.67743,8.27366],[49.63504,8.29807],[49.60292,8.31734],[49.58237,8.34817],[49.5631,8.35587],[49.5464,8.33917],[49.54126,8.30192],[49.53869,8.27109],[49.52584,8.25311],[49.4963,8.25824],[49.45905,8.27623],[49.43207,8.27623],[49.39353,8.25824],[49.37426,8.21714],[49.37041,8.1786],[49.36655,8.05528],[49.37169,7.98206],[49.38711,7.93838],[49.42179,7.88956],[49.44491,7.85231],[49.48345,7.81891],[49.53227,7.79194],[49.56438,7.7778],[49.61577,7.77267],[49.66073,7.78166],[49.69734,7.78824],[49.73395,7.7876],[49.77056,7.79017],[49.80396,7.78953],[49.80781,7.81715]]] },
+      "Pfalz": { polygons:[[[49.38044,7.94544],[49.36776,7.98559],[49.36423,8.04998],[49.36439,8.10329],[49.36696,8.14568],[49.36985,8.19883],[49.3676,8.20172],[49.35604,8.20285],[49.34753,8.20253],[49.33564,8.19674],[49.32569,8.19064],[49.31316,8.17972],[49.28811,8.16504],[49.26242,8.16076],[49.22755,8.16015],[49.19574,8.16443],[49.16149,8.17667],[49.10766,8.18645],[49.0575,8.1889],[49.02446,8.17911],[48.99204,8.14975],[48.97714,8.11628],[48.98674,8.05913],[48.99108,8.03327],[48.99761,7.99442],[49.00692,7.93899],[49.03725,7.75839],[49.03869,7.74981],[49.03793,7.75431],[49.05994,7.77416],[49.10949,7.80474],[49.13274,7.83655],[49.14987,7.86744],[49.16822,7.89711],[49.18382,7.90568],[49.21501,7.92892],[49.2664,7.9329],[49.32482,7.94238],[49.38044,7.94544]]] },
+      "Franken": { polygons:[[[49.6967,10.7645],[49.7211,10.6643],[49.72496,10.61035],[49.71725,10.56924],[49.68899,10.54483],[49.68128,10.51914],[49.66073,10.43179],[49.6466,10.39068],[49.62861,10.356],[49.61577,10.37141],[49.61063,10.43564],[49.59264,10.47675],[49.57209,10.47932],[49.54254,10.45491],[49.5297,10.44078],[49.51043,10.42793],[49.48217,10.42665],[49.44363,10.42408],[49.40638,10.42408],[49.36398,10.42151],[49.34472,10.39839],[49.32673,10.3637],[49.32545,10.33544],[49.3126,10.2802],[49.32416,10.20698],[49.33958,10.18257],[49.36398,10.1389],[49.36784,10.10165],[49.37555,10.07981],[49.36527,10.03228],[49.35628,10.00658],[49.34985,9.96933],[49.36398,9.89996],[49.37555,9.84087],[49.40124,9.79463],[49.44491,9.76636],[49.46932,9.75352],[49.4796,9.73682],[49.50015,9.69571],[49.51557,9.66874],[49.53098,9.6469],[49.54383,9.63662],[49.55282,9.66103],[49.5631,9.69314],[49.58879,9.72526],[49.60806,9.75737],[49.63889,9.75866],[49.66073,9.74196],[49.68642,9.71883],[49.71597,9.69828],[49.74808,9.68543],[49.75964,9.65717],[49.73652,9.64047],[49.69156,9.64176],[49.64274,9.65204],[49.61577,9.66488],[49.58494,9.67259],[49.55796,9.65075],[49.54126,9.61864],[49.5297,9.5133],[49.53227,9.44008],[49.53227,9.38741],[49.53484,9.30905],[49.53098,9.26922],[49.51557,9.24225],[49.48859,9.2127],[49.49244,9.14847],[49.50914,9.10223],[49.54126,9.0457],[49.57594,9.00717],[49.60806,8.98661],[49.63247,8.96606],[49.671,8.9712],[49.6877,8.99304],[49.69541,9.00074],[49.72496,8.99817],[49.74423,8.99175],[49.78405,8.95707],[49.81616,8.93137],[49.84956,8.94165],[49.86369,8.97505],[49.86626,9.00074],[49.8714,9.0547],[49.8714,9.09966],[49.86369,9.14847],[49.82387,9.17031],[49.7802,9.17288],[49.70569,9.17802],[49.66843,9.19086],[49.64917,9.21913],[49.6209,9.26922],[49.62347,9.31675],[49.60806,9.37071],[49.61834,9.45164],[49.6132,9.50431],[49.6209,9.53771],[49.64274,9.55184],[49.6967,9.55184],[49.77377,9.54927],[49.81616,9.55312],[49.85599,9.57753],[49.89838,9.61992],[49.92921,9.66617],[49.92921,9.697],[49.91508,9.76765],[49.8881,9.81903],[49.85342,9.84601],[49.80203,9.88583],[49.76093,9.91538],[49.71211,9.94364],[49.67743,9.96162],[49.62219,9.99117],[49.6042,10.022],[49.62347,10.03228],[49.66587,10.02328],[49.6877,10.00658],[49.72496,10.01686],[49.78148,10.0387],[49.83672,10.08623],[49.88682,10.12991],[49.92022,10.16588],[49.92792,10.23524],[49.91893,10.3226],[49.89709,10.39839],[49.85856,10.49473],[49.8213,10.5808],[49.82773,10.61035],[49.81745,10.70926],[49.79047,10.7979],[49.76992,10.83901],[49.75065,10.85699],[49.7301,10.85314],[49.70697,10.82359],[49.6967,10.7645]]] },
+      "Baden": { polygons:[[[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.607,7.565],[47.62746,7.56693],[47.67294,7.57123],[47.71669,7.57537],[47.76286,7.57974],[47.79866,7.58312],[47.84709,7.5877],[47.91273,7.59391],[47.96776,7.59911],[48.03287,7.60526],[48.06081,7.60791],[48.08516,7.61021],[48.10068,7.61168],[48.11094,7.61264],[48.13101,7.61454],[48.157,7.617],[48.157,7.617],[48.18101,7.62808],[48.21368,7.64315],[48.28056,7.67401],[48.31904,7.69176],[48.34581,7.70411],[48.37746,7.71872],[48.41719,7.73705],[48.44977,7.75208],[48.4857,7.76865],[48.51843,7.78376],[48.56001,7.80294],[48.6059,7.83342],[48.66462,7.90682],[48.70255,7.93741],[48.72457,7.96065],[48.73558,7.99369],[48.73558,8.04629],[48.72947,8.11481],[48.7209,8.18943],[48.69888,8.25183],[48.67196,8.27018],[48.63281,8.29465],[48.59734,8.29832],[48.58755,8.25305],[48.57654,8.20412],[48.57409,8.15518],[48.58755,8.13438],[48.60223,8.08789],[48.59611,8.0622],[48.57287,8.02917],[48.53983,8.01938],[48.49579,8.01938],[48.44685,8.00837],[48.42361,7.99736],[48.39425,7.97411],[48.36488,7.9215],[48.34042,7.87746],[48.31595,7.85789],[48.28047,7.85666],[48.24376,7.85177],[48.20461,7.83464],[48.19238,7.80405],[48.15568,7.74533],[48.12265,7.69028],[48.09695,7.67682],[48.0578,7.70618],[48.02722,7.73432],[48.0003,7.75022],[47.96727,7.75634],[47.92078,7.75022],[47.87918,7.72086],[47.84248,7.66948],[47.82046,7.62421],[47.78437,7.58177],[47.75003,7.57852],[47.7179,7.57549],[47.69303,7.57313],[47.66285,7.57028],[47.64738,7.56882],[47.63301,7.56746],[47.607,7.565]],[[47.65789,8.91901],[47.65926,8.9467],[47.66018,8.9652],[47.66097,8.98104],[47.66215,9.00475],[47.66329,9.0277],[47.66418,9.04577],[47.66526,9.06752],[47.66551,9.07241],[47.66518,9.06576],[47.66467,9.05564],[47.66316,9.0251],[47.6612,8.98571],[47.65995,8.96044],[47.65856,8.93252],[47.65712,8.90356],[47.65635,8.88803],[47.65657,8.89257],[47.65789,8.91901]],[[47.66037,8.96894],[47.66199,9.00155],[47.66309,9.02367],[47.66502,9.06269],[47.66731,9.10873],[47.66918,9.14641],[47.66703,9.1922],[47.64961,9.23262],[47.63988,9.25519],[47.623,9.29435],[47.61492,9.35047],[47.61064,9.39451],[47.59045,9.42204],[47.56415,9.43978],[47.555,9.45208],[47.55228,9.4584],[47.55556,9.4508],[47.56537,9.42804],[47.58461,9.3834],[47.6026,9.34168],[47.62615,9.28704],[47.64402,9.24559],[47.66769,9.11637],[47.66552,9.07258],[47.6638,9.03797],[47.66216,9.00499],[47.66037,8.96894]],[[48.86832,8.69807],[48.8252,8.69196],[48.80501,8.68951],[48.78177,8.69532],[48.7628,8.69777],[48.75638,8.68584],[48.75883,8.65862],[48.75179,8.63415],[48.74721,8.60693],[48.74048,8.57451],[48.72977,8.54851],[48.71723,8.52435],[48.71142,8.5008],[48.70714,8.47878],[48.6998,8.4488],[48.6946,8.4176],[48.69184,8.3861],[48.70102,8.33869],[48.70897,8.31728],[48.71968,8.29863],[48.74078,8.27874],[48.75913,8.26498],[48.77963,8.26406],[48.79889,8.27018],[48.81174,8.28333],[48.84233,8.31545],[48.8512,8.32524],[48.86374,8.34145],[48.87872,8.35888],[48.88943,8.37478],[48.90319,8.39405],[48.93745,8.41699],[48.95702,8.43014],[48.98057,8.44115],[49.0026,8.45033],[49.05276,8.47296],[49.07417,8.48092],[49.09558,8.49162],[49.26349,8.52007],[49.24988,8.54041],[49.23367,8.56319],[49.22618,8.59102],[49.22557,8.61718],[49.22388,8.63537],[49.22205,8.65648],[49.21991,8.6863],[49.21134,8.70618],[49.20125,8.72132],[49.20232,8.73937],[49.20523,8.7724],[49.22373,8.8036],[49.24422,8.83556],[49.25799,8.86048],[49.26288,8.88495],[49.25202,8.90896],[49.22985,8.93053],[49.20171,8.95928],[49.17495,8.99139],[49.14818,9.0151],[49.13427,9.02458],[49.09955,9.04721],[49.076,9.04201],[49.06514,9.0284],[49.0422,9.01081],[49.01926,9.00867],[49.00565,8.98818],[49.0052,8.97044],[49.0052,8.95545],[49.00305,8.92181],[49.00351,8.88725],[48.99541,8.87272],[48.99311,8.85452],[48.97476,8.81277],[48.94555,8.80161],[48.92674,8.78555],[48.89585,8.71214],[48.86832,8.69807]],[[49.35433,8.60815],[49.33109,8.66902],[49.33476,8.68553],[49.34332,8.71],[49.33965,8.72897],[49.32925,8.7779],[49.31885,8.82501],[49.32252,8.87333],[49.32497,8.92961],[49.33598,8.96019],[49.35494,8.99751],[49.37513,9.04216],[49.39348,9.09967],[49.41,9.14738],[49.42896,9.20243],[49.44364,9.2373],[49.45465,9.26544],[49.47239,9.3156],[49.4834,9.34924],[49.50175,9.40797],[49.52072,9.47342],[49.52439,9.51991],[49.52867,9.57191],[49.53356,9.61595],[49.52683,9.64042],[49.51582,9.65632],[49.49747,9.69242],[49.48768,9.71505],[49.4779,9.7334],[49.45955,9.74441],[49.44364,9.74013],[49.4259,9.7175],[49.42101,9.69303],[49.40327,9.63553],[49.38798,9.59638],[49.37635,9.56396],[49.36228,9.52848],[49.34087,9.4722],[49.32803,9.43305],[49.31029,9.39512],[49.28704,9.36148],[49.26441,9.32722],[49.24667,9.29908],[49.22648,9.2685],[49.20997,9.24342],[49.19467,9.21773],[49.14176,9.13056],[49.12524,9.10701],[49.11607,9.09385],[49.11209,9.07856],[49.11332,9.06908],[49.11546,9.06052],[49.14054,9.04216],[49.16745,9.01892],[49.19529,8.99567],[49.22985,8.96065],[49.24774,8.94597],[49.25829,8.93129],[49.27007,8.9215],[49.27313,8.89306],[49.27573,8.86232],[49.27634,8.84167],[49.26502,8.82516],[49.25661,8.81491],[49.24545,8.80665],[49.23061,8.77928],[49.22205,8.77056],[49.21685,8.75818],[49.21654,8.71796],[49.22174,8.70756],[49.23138,8.69242],[49.23642,8.67972],[49.23887,8.65602],[49.23887,8.63797],[49.23704,8.61396],[49.23841,8.59317],[49.24254,8.57497],[49.24789,8.56136],[49.25768,8.55295],[49.26793,8.54576],[49.28123,8.54362],[49.31717,8.54346],[49.33032,8.54897],[49.33659,8.55784],[49.34699,8.56809],[49.35448,8.57803],[49.358,8.59133],[49.35433,8.60815]]] }
+    },
     regions: {
       "Mosel": { lat:49.9, lon:7.1, producers:[
         {name:"Markus Molitor", wines:[
@@ -275,11 +348,19 @@ const DATA = {
         {name:"J.J. Prüm", wines:[
           ["2024 · Wehlener Sonnenuhr Kabinett · Riesling","89"],["2023 · Graacher Himmelreich Spätlese · Riesling","89"]]}
       ]},
-      "Rheingau": { lat:50.0, lon:8.0, producers:[
-        {name:"Künstler", wines:[
-          ["2023 · Hochheimer Kirchenstück „Im Stein“ · 1G · Riesling","49"],
-          ["2022 · Hölle GG · Riesling","92"],["2021 · Assmannshäuser Höllenberg GG · Pinot Noir","120"]]}
-      ]},
+      "Rheingau": { lat:50.0, lon:8.0, producers:[],
+        lagen:{
+          "Hochheimer Kirchenstück": { lat:50.0125, lon:8.343, producers:[
+            {name:"Künstler", wines:[["2023 · „Im Stein“ · 1G · Riesling","49"]]}
+          ]},
+          "Hochheimer Hölle": { lat:50.010, lon:8.350, producers:[
+            {name:"Künstler", wines:[["2022 · GG · Riesling","92"]]}
+          ]},
+          "Assmannshäuser Höllenberg": { lat:49.981, lon:7.837, producers:[
+            {name:"Künstler", wines:[["2021 · GG · Pinot Noir","120"]]}
+          ]}
+        }
+      },
       "Nahe": { lat:49.8, lon:7.6, producers:[
         {name:"Zehn Morgen", wines:[["2020 · Steinberg Monopol · Riesling","58"],["2022 · Pinot Noir","38"]]}
       ]},
@@ -526,7 +607,17 @@ const DATA = {
 /* ================= HELPERS ================= */
 const NS = "http://www.w3.org/2000/svg";
 function el(tag, attrs){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
-function wineCountRegion(regionObj){ return regionObj.producers.reduce((s,p)=>s+p.wines.length,0); }
+function wineCountProducers(producers){ return producers.reduce((s,p)=>s+p.wines.length,0); }
+function wineCountRegion(regionObj){
+  let n = wineCountProducers(regionObj.producers);
+  if(regionObj.lagen) n += Object.values(regionObj.lagen).reduce((s,l)=>s+wineCountProducers(l.producers),0);
+  return n;
+}
+function producerCountRegion(regionObj){
+  let n = regionObj.producers.length;
+  if(regionObj.lagen) n += Object.values(regionObj.lagen).reduce((s,l)=>s+l.producers.length,0);
+  return n;
+}
 function wineCountCountry(country){ return Object.values(DATA[country].regions).reduce((s,r)=>s+wineCountRegion(r),0); }
 
 function project(lat, lon, bounds, w, h, pad){
@@ -541,6 +632,86 @@ function project(lat, lon, bounds, w, h, pad){
   const x = offX + (lon-bounds.lonMin)*cosLat*k;
   const y = offY + (bounds.latMax-lat)*k;
   return [x,y];
+}
+
+/* Farbskala für Anbaugebiete: sandfarben (wenig) -> tiefes Weinrot (viel) */
+function lerpColor(hexA, hexB, t){
+  const a = [parseInt(hexA.slice(1,3),16), parseInt(hexA.slice(3,5),16), parseInt(hexA.slice(5,7),16)];
+  const b = [parseInt(hexB.slice(1,3),16), parseInt(hexB.slice(3,5),16), parseInt(hexB.slice(5,7),16)];
+  const c = a.map((v,i)=> Math.round(v + (b[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function regionColor(t){ return lerpColor('#e8c98a', '#8a1f34', Math.max(0,Math.min(1,t))); }
+
+/* Voronoi-Tessellation für Lagen-Flächen: aneinandergrenzende Flächen wie auf
+   klassischen illustrierten Weinkarten (z.B. Bordeaux-Atlanten) — errechnet aus den
+   echten Lagen-Koordinaten, ohne dass amtliche Flächen-Geometrie nötig wäre. */
+function rectPoly(minX,minY,maxX,maxY){ return [[minX,minY],[maxX,minY],[maxX,maxY],[minX,maxY]]; }
+function clipHalfPlane(poly, a, b, c){
+  if(poly.length===0) return poly;
+  const out = [];
+  for(let i=0;i<poly.length;i++){
+    const cur = poly[i];
+    const prev = poly[(i-1+poly.length)%poly.length];
+    const curD = a*cur[0]+b*cur[1]-c, prevD = a*prev[0]+b*prev[1]-c;
+    const curIn = curD <= 0, prevIn = prevD <= 0;
+    if(curIn){
+      if(!prevIn){ const t=prevD/(prevD-curD); out.push([prev[0]+t*(cur[0]-prev[0]), prev[1]+t*(cur[1]-prev[1])]); }
+      out.push(cur);
+    } else if(prevIn){
+      const t=prevD/(prevD-curD); out.push([prev[0]+t*(cur[0]-prev[0]), prev[1]+t*(cur[1]-prev[1])]);
+    }
+  }
+  return out;
+}
+function voronoiCell(site, sites, minX,minY,maxX,maxY){
+  let poly = rectPoly(minX,minY,maxX,maxY);
+  sites.forEach(other=>{
+    if(other===site) return;
+    const a = 2*(other.x-site.x), b = 2*(other.y-site.y);
+    const c = other.x*other.x+other.y*other.y - site.x*site.x-site.y*site.y;
+    poly = clipHalfPlane(poly, a, b, c);
+  });
+  return poly;
+}
+function polyToPath(poly){
+  if(poly.length===0) return '';
+  return poly.map((p,i)=> (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+' Z';
+}
+
+/* Catmull-Rom -> kubische Bezier: rundet Polygon-/Linienzüge zu einer weichen, organischen
+   Kurve statt eckiger Geradensegmente (für Gebietsflächen und Flusslinien). Punkte in x,y. */
+function smoothPath(pts, closed){
+  const n = pts.length;
+  if(n<3) return polyToPath(pts).replace(/ Z$/, closed?' Z':'');
+  const at = i=> closed ? pts[(i+n)%n] : pts[Math.max(0,Math.min(n-1,i))];
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)} `;
+  const steps = closed ? n : n-1;
+  for(let i=0;i<steps;i++){
+    const p0=at(i-1), p1=at(i), p2=at(i+1), p3=at(i+2);
+    const c1x=p1[0]+(p2[0]-p0[0])/6, c1y=p1[1]+(p2[1]-p0[1])/6;
+    const c2x=p2[0]-(p3[0]-p1[0])/6, c2y=p2[1]-(p3[1]-p1[1])/6;
+    d += `C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)} `;
+  }
+  return d + (closed ? 'Z' : '');
+}
+
+/* Erzeugt aus einer Mittellinie (spine, [lat,lon]-Punkte) ein "Flussband"-Polygon fester Breite —
+   für von Hand angenäherte Anbaugebiets-Flächen, die einem Talverlauf folgen. Rückgabe in lat/lon. */
+function ribbonPolygon(spine, widthDeg){
+  const n = spine.length;
+  const left = [], right = [];
+  for(let i=0;i<n;i++){
+    const [lat,lon] = spine[i];
+    const prev = spine[Math.max(0,i-1)], next = spine[Math.min(n-1,i+1)];
+    const cosLat = Math.cos(lat*Math.PI/180);
+    let dx = (next[1]-prev[1])*cosLat, dy = next[0]-prev[0];
+    const len = Math.hypot(dx,dy) || 1; dx/=len; dy/=len;
+    const px = -dy, py = dx, half = widthDeg/2;
+    left.push([lat+py*half, lon+(px*half)/cosLat]);
+    right.push([lat-py*half, lon-(px*half)/cosLat]);
+  }
+  return left.concat(right.reverse());
 }
 
 /* ================= WORLD MAP ================= */
@@ -603,8 +774,11 @@ function zoomToCountry(country){
   currentCountry = country;
   const {x,y} = nodeEls[country];
   buildCountryLayer(country);
-  hintText.textContent = "▸ Anbaugebiet anklicken für die Weinliste";
+  resetPanZoom();
+  hintText.textContent = "▸ Anbaugebiet anklicken für die Weinliste · Mausrad = Zoom";
   backBtn.classList.add('show');
+  zoomCtrls.classList.add('show');
+  stage.classList.add('zoomable');
 
   tween(600, t=>{
     const scale = 1 + t*7;
@@ -624,6 +798,8 @@ function zoomToWorld(){
   const {x,y} = nodeEls[currentCountry];
   hintText.textContent = "▸ Land anklicken zum Heranzoomen";
   backBtn.classList.remove('show');
+  zoomCtrls.classList.remove('show');
+  stage.classList.remove('zoomable');
   hideTooltip();
 
   tween(500, t=>{
@@ -669,8 +845,14 @@ function moveTooltip(evt){
 function hideTooltip(){ tooltip.classList.remove('show'); }
 
 /* ================= COUNTRY (ZOOMED) MAP — ECHTE GRENZEN ================= */
+let zoomG = null; // Gruppe, auf der der Pan/Zoom der Länderansicht angewendet wird
+let lageZoneEls = {}; // { Region: { Lage: <g>-Element } } — für Sichtbarkeit per Panel-Klick
+
 function buildCountryLayer(country){
   countryLayer.innerHTML = '';
+  zoomG = el('g',{id:'zoomG'});
+  countryLayer.appendChild(zoomG);
+
   const data = DATA[country];
   const regionNames = Object.keys(data.regions);
   const borderPolys = BORDERS[BORDER_NAME[country]] || [];
@@ -695,14 +877,14 @@ function buildCountryLayer(country){
       d += (i===0?'M':'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
     });
     d += 'Z';
-    countryLayer.appendChild(el('path',{d, class:'landmass'}));
+    zoomG.appendChild(el('path',{d, class:'landmass'}));
   });
 
   const title = el('text',{x:56,y:60,class:'country-title'}); title.textContent = country;
-  countryLayer.appendChild(title);
+  zoomG.appendChild(title);
   const note = el('text',{x:56,y:82,class:'country-note'});
   note.textContent = regionNames.length + " Anbaugebiete · echte Landesgrenze";
-  countryLayer.appendChild(note);
+  zoomG.appendChild(note);
 
   // nearest-neighbour Radius für Marker-Größe
   const projRegion = regionNames.map(n=> proj(data.regions[n].lat, data.regions[n].lon));
@@ -713,23 +895,147 @@ function buildCountryLayer(country){
     return Math.max(6, Math.min(11, minD/2*0.35));
   });
 
+  // Farbskala relativ zum Gebiet mit den meisten Positionen im Land
+  const counts = regionNames.map(n=> wineCountRegion(data.regions[n]));
+  const maxCount = Math.max(1, ...counts);
+
+  lageZoneEls = {};
+
   regionNames.forEach((name,i)=>{
     const [x,y] = projRegion[i];
     const r = radii[i];
     const regionObj = data.regions[name];
-    const count = wineCountRegion(regionObj);
+    const hasLagen = !!regionObj.lagen;
 
-    const g = el('g',{class:'zone','data-region':name});
-    g.appendChild(el('circle',{cx:x,cy:y,r:r,class:'ring'}));
-    g.appendChild(el('circle',{cx:x,cy:y,r:2,class:'dot'}));
-    countryLayer.appendChild(g);
+    // Lagen: aneinandergrenzende Voronoi-Flächen (wie auf klassischen Weinkarten), Position aus
+    // den echten Ortskoordinaten. Umriss erscheint, sobald das Gebietspanel offen ist ("context"),
+    // Farbfüllung erst, wenn im Panel (oder direkt auf der Fläche) der jeweilige Wein angeklickt wird ("show").
+    if(hasLagen){
+      lageZoneEls[name] = {};
+      const lageNames = Object.keys(regionObj.lagen);
+      const sites = lageNames.map(lname=>{
+        const lage = regionObj.lagen[lname];
+        const [sx,sy] = proj(lage.lat, lage.lon);
+        return { lname, x:sx, y:sy, lage };
+      });
+      let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+      sites.forEach(s=>{ if(s.x<minX)minX=s.x; if(s.x>maxX)maxX=s.x; if(s.y<minY)minY=s.y; if(s.y>maxY)maxY=s.y; });
+      const padX = Math.max(50, (maxX-minX)*0.6), padY = Math.max(50, (maxY-minY)*0.6);
+      minX-=padX; maxX+=padX; minY-=padY; maxY+=padY;
 
-    g.addEventListener('mouseenter', (e)=> showTooltip(e, name, count+" Weine · "+regionObj.producers.length+" Erzeuger"));
+      sites.forEach(site=>{
+        const { lname, lage } = site;
+        const cell = voronoiCell(site, sites, minX,minY,maxX,maxY);
+        const lcount = wineCountProducers(lage.producers);
+        const lcolor = regionColor(lcount/maxCount);
+        const cx = cell.reduce((s,p)=>s+p[0],0)/cell.length, cy = cell.reduce((s,p)=>s+p[1],0)/cell.length;
+
+        const g = el('g',{class:'zone lage','data-region':lname});
+        g.appendChild(el('path',{d:polyToPath(cell), class:'cell', fill:lcolor}));
+        const lbl = el('text',{x:cx,y:cy,'text-anchor':'middle',class:'lage-label'}); lbl.textContent=lname;
+        g.appendChild(lbl);
+        zoomG.appendChild(g);
+        lageZoneEls[name][lname] = g;
+
+        g.addEventListener('mouseenter', (e)=> showTooltip(e, lname, lcount+" Weine · "+lage.producers.length+" Erzeuger · "+name));
+        g.addEventListener('mousemove', moveTooltip);
+        g.addEventListener('mouseleave', hideTooltip);
+        g.addEventListener('click', (e)=>{ e.stopPropagation(); toggleLageFill(name, lname); });
+      });
+    }
+
+    // Gebiets-Marker: entweder Fläche (von Hand angenähert, aktuell nur Deutschland) oder Punkt
+    const count = hasLagen ? wineCountRegion(regionObj) : wineCountProducers(regionObj.producers);
+    const color = regionColor(count/maxCount);
+    const producerCount = hasLagen ? producerCountRegion(regionObj) : regionObj.producers.length;
+    const shapeDef = data.shapes && data.shapes[name];
+
+    const g = el('g',{class: shapeDef ? 'zone region-area' : 'zone', 'data-region':name});
+    if(shapeDef){
+      // ein Gebiet kann aus mehreren getrennten Teilflächen bestehen (z.B. Baden mit Bodensee-Exklave)
+      const parts = shapeDef.polygons || (shapeDef.polygon ? [shapeDef.polygon] : ribbonPolygon(shapeDef.spine, shapeDef.width) ? [ribbonPolygon(shapeDef.spine, shapeDef.width)] : []);
+      const d = parts.map(latlonPoly=>{
+        const projPoly = latlonPoly.map(([lat,lon])=> proj(lat,lon));
+        return smoothPath(projPoly,true);
+      }).join(' ');
+      g.appendChild(el('path',{d, class:'area', fill:color}));
+    } else {
+      g.appendChild(el('circle',{cx:x,cy:y,r:r*1.9,class:'glow',fill:color}));
+      g.appendChild(el('circle',{cx:x,cy:y,r:r,class:'ring',fill:color}));
+      g.appendChild(el('circle',{cx:x,cy:y,r:2,class:'dot'}));
+    }
+    zoomG.appendChild(g);
+
+    g.addEventListener('mouseenter', (e)=> showTooltip(e, name, count+" Weine · "+producerCount+" Erzeuger"));
     g.addEventListener('mousemove', moveTooltip);
     g.addEventListener('mouseleave', hideTooltip);
-    g.addEventListener('click', (e)=>{ e.stopPropagation(); openRegion(country, name, g); });
+    g.addEventListener('click', (e)=>{ e.stopPropagation(); openRegionPanel(country, name, regionObj, g); });
   });
 }
+
+/* ================= PAN / ZOOM (Länderansicht) ================= */
+const zoomCtrls = document.getElementById('zoomCtrls');
+let panX=0, panY=0, zoomScale=1;
+const ZOOM_MIN=1, ZOOM_MAX=6;
+
+function applyPanZoom(){
+  if(!zoomG) return;
+  zoomG.setAttribute('transform', `translate(${panX},${panY}) scale(${zoomScale})`);
+}
+function resetPanZoom(){
+  panX=0; panY=0; zoomScale=1;
+  applyPanZoom();
+}
+function svgUnitFactor(){
+  const r = svg.getBoundingClientRect();
+  return 1000 / r.width; // viewBox-Breite / gerenderte Breite
+}
+function zoomAt(clientX, clientY, factorDelta){
+  if(!currentCountry) return;
+  const r = svg.getBoundingClientRect();
+  const u = svgUnitFactor();
+  const mx = (clientX - r.left) * u;
+  const my = (clientY - r.top) * u;
+  const localX = (mx - panX) / zoomScale;
+  const localY = (my - panY) / zoomScale;
+  const newScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomScale * factorDelta));
+  panX = mx - localX * newScale;
+  panY = my - localY * newScale;
+  zoomScale = newScale;
+  if(zoomScale <= ZOOM_MIN){ panX=0; panY=0; zoomScale=1; }
+  applyPanZoom();
+}
+svg.addEventListener('wheel', (e)=>{
+  if(!currentCountry) return;
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? 1.18 : 1/1.18;
+  zoomAt(e.clientX, e.clientY, delta);
+}, {passive:false});
+
+let dragging=false, dragStartX=0, dragStartY=0, panStartX=0, panStartY=0;
+svg.addEventListener('mousedown', (e)=>{
+  if(!currentCountry || zoomScale<=1) return;
+  dragging=true; dragStartX=e.clientX; dragStartY=e.clientY; panStartX=panX; panStartY=panY;
+  svg.classList.add('grabbing');
+});
+window.addEventListener('mousemove', (e)=>{
+  if(!dragging) return;
+  const u = svgUnitFactor();
+  panX = panStartX + (e.clientX - dragStartX) * u;
+  panY = panStartY + (e.clientY - dragStartY) * u;
+  applyPanZoom();
+});
+window.addEventListener('mouseup', ()=>{ dragging=false; svg.classList.remove('grabbing'); });
+
+document.getElementById('zoomIn').addEventListener('click', ()=>{
+  const r = svg.getBoundingClientRect();
+  zoomAt(r.left + r.width/2, r.top + r.height/2, 1.4);
+});
+document.getElementById('zoomOut').addEventListener('click', ()=>{
+  const r = svg.getBoundingClientRect();
+  zoomAt(r.left + r.width/2, r.top + r.height/2, 1/1.4);
+});
+document.getElementById('zoomReset').addEventListener('click', resetPanZoom);
 
 /* ================= PANEL ================= */
 const panel = document.getElementById('panel');
@@ -737,31 +1043,69 @@ const backdrop = document.getElementById('backdrop');
 const panelContent = document.getElementById('panelContent');
 let activeZoneEl = null;
 
-function openRegion(country, regionName, zoneEl){
-  if(activeZoneEl) activeZoneEl.classList.remove('open');
-  activeZoneEl = zoneEl; if(zoneEl) zoneEl.classList.add('open');
-
-  const regionObj = DATA[country].regions[regionName];
-  let html = `<div class="panel-eyebrow">${country}</div>
-    <h2>${regionName}</h2>
-    <div class="panel-meta">${regionObj.producers.length} Erzeuger · ${wineCountRegion(regionObj)} Positionen</div>
-    <div class="region-block">`;
-  regionObj.producers.forEach(p=>{
+function renderProducers(producers, region, lname){
+  let html = '';
+  producers.forEach(p=>{
     html += `<div class="producer"><div class="producer-name">${p.name}</div>`;
     p.wines.forEach(([label,price])=>{
-      html += `<div class="wine-row"><span class="wine-label">${label}</span><span class="wine-dots"></span><span class="wine-price">€ ${price}</span></div>`;
+      const cls = lname ? 'wine-row lage-wine' : 'wine-row';
+      const attrs = lname ? ` data-region="${region}" data-lage="${lname}"` : '';
+      html += `<div class="${cls}"${attrs}><span class="wine-label">${label}</span><span class="wine-dots"></span><span class="wine-price">€ ${price}</span></div>`;
     });
     html += `</div>`;
   });
+  return html;
+}
+
+function openRegionPanel(country, name, regionObj, zoneEl){
+  if(activeZoneEl) activeZoneEl.classList.remove('open');
+  activeZoneEl = zoneEl; if(zoneEl) zoneEl.classList.add('open');
+
+  const hasLagen = !!regionObj.lagen;
+  const totalWines = hasLagen ? wineCountRegion(regionObj) : wineCountProducers(regionObj.producers);
+  const totalProducers = hasLagen ? producerCountRegion(regionObj) : regionObj.producers.length;
+
+  let html = `<div class="panel-eyebrow">${country}</div>
+    <h2>${name}</h2>
+    <div class="panel-meta">${totalProducers} Erzeuger · ${totalWines} Positionen</div>
+    <div class="region-block">` + renderProducers(regionObj.producers);
+
+  if(hasLagen){
+    html += `<div class="lage-hint">▸ Auf einen Wein klicken, um seine Lage auf der Karte zu zeigen</div>`;
+    Object.keys(regionObj.lagen).forEach(lname=>{
+      html += `<div class="lage-title">${lname}</div>` + renderProducers(regionObj.lagen[lname].producers, name, lname);
+    });
+  }
+
   html += `</div>`;
   panelContent.innerHTML = html;
   panel.classList.add('show');
   backdrop.classList.add('show');
+
+  // Umriss aller Lagen dieses Gebiets als Kontext einblenden (Füllfarbe folgt erst per Klick)
+  if(hasLagen) Object.values(lageZoneEls[name]).forEach(g=> g.classList.add('context'));
 }
+
+function toggleLageFill(region, lname){
+  const g = lageZoneEls[region] && lageZoneEls[region][lname];
+  if(!g) return;
+  const showing = g.classList.contains('show');
+  g.classList.toggle('show', !showing);
+  panelContent.querySelectorAll(`.wine-row.lage-wine[data-region="${CSS.escape(region)}"][data-lage="${CSS.escape(lname)}"]`)
+    .forEach(row=> row.classList.toggle('active', !showing));
+}
+
+panelContent.addEventListener('click', (e)=>{
+  const row = e.target.closest('.wine-row.lage-wine');
+  if(!row) return;
+  toggleLageFill(row.getAttribute('data-region'), row.getAttribute('data-lage'));
+});
+
 function closePanel(){
   panel.classList.remove('show');
   backdrop.classList.remove('show');
   if(activeZoneEl){ activeZoneEl.classList.remove('open'); activeZoneEl=null; }
+  Object.values(lageZoneEls).forEach(byLage=> Object.values(byLage).forEach(g=> g.classList.remove('show','context')));
 }
 document.getElementById('panelClose').addEventListener('click', closePanel);
 backdrop.addEventListener('click', closePanel);
@@ -773,7 +1117,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closePanel(); } 
 <script>
 /* ===== Supabase Login ===== */
 const { createClient } = supabase;
-const sb = createClient('https://txtmyvmpxtnxuyyflaws.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4dG15dm1weHRueHV5eWZsYXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNzg2MzMsImV4cCI6MjEwMzY1NDYzM30.WIVLC9bwlLldX0bO4kO7aS4FGt-Muq-0hPlzdeKr_Rc');
+const sb = createClient('https://txtmyvmpxtnxuyyflaws.supabase.co', 'sb_publishable_fn5EB2pjYPOhsYt92L3iQg_sBDceD-n');
 
 const loginScreen = document.getElementById('loginScreen');
 const appContent = document.getElementById('appContent');

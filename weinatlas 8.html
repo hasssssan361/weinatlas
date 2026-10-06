@@ -208,9 +208,66 @@ footer{text-align:center;margin-top:50px;color:var(--parchment-dim);font-family:
 
 @media (max-width:640px){ .panel{width:100vw;} h1{font-size:30px;} }
 
+/* ===== Login-Bereich ===== */
+#loginScreen{
+  position:fixed;inset:0;z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse at 30% 15%, rgba(124,36,52,0.16), transparent 55%),
+    radial-gradient(ellipse at 80% 85%, rgba(201,163,93,0.08), transparent 55%),
+    var(--ink);
+}
+#loginScreen.hidden{display:none;}
+.login-card{
+  width:min(360px,90vw);
+  background:linear-gradient(180deg, var(--panel), var(--panel2));
+  border:1px solid var(--line);border-radius:16px;
+  padding:36px 30px;text-align:center;
+}
+.login-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);opacity:.85;margin-bottom:10px;}
+.login-title{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:28px;color:var(--parchment);margin:0 0 22px;}
+.login-field{
+  width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:11px 14px;color:var(--parchment);font-family:'Inter',sans-serif;font-size:14px;
+  margin-bottom:12px;box-sizing:border-box;
+}
+.login-field:focus{outline:none;border-color:var(--gold);}
+.login-btn{
+  width:100%;background:var(--wine-bright);color:var(--parchment);border:none;border-radius:8px;
+  padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;
+  cursor:pointer;transition:.2s;margin-top:6px;
+}
+.login-btn:hover{background:var(--wine);}
+.login-btn:disabled{opacity:.5;cursor:default;}
+.login-error{color:var(--wine-bright);font-size:12.5px;margin-top:12px;min-height:16px;font-family:'IBM Plex Mono',monospace;}
+
+#logoutBtn{
+  position:fixed;top:18px;right:18px;z-index:60;
+  background:rgba(28,22,19,0.85);border:1px solid var(--line);color:var(--parchment-dim);
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;
+  padding:8px 13px;border-radius:30px;cursor:pointer;transition:.2s;
+}
+#logoutBtn:hover{border-color:var(--gold);color:var(--gold-bright);}
+#appContent{display:none;}
+
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-eyebrow">Chefs Warehouse Hamburg</div>
+    <h1 class="login-title">Der Weinatlas</h1>
+    <form id="loginForm">
+      <input class="login-field" type="email" id="loginEmail" placeholder="E-Mail" autocomplete="username" required>
+      <input class="login-field" type="password" id="loginPassword" placeholder="Passwort" autocomplete="current-password" required>
+      <button class="login-btn" type="submit" id="loginBtn">ANMELDEN</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+<button id="logoutBtn" style="display:none;">Abmelden</button>
+<div id="appContent">
 
 <div class="wrap">
   <header>
@@ -1053,6 +1110,56 @@ function closePanel(){
 document.getElementById('panelClose').addEventListener('click', closePanel);
 backdrop.addEventListener('click', closePanel);
 document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closePanel(); } });
+</script>
+
+</div>
+
+<script>
+/* ===== Supabase Login ===== */
+const { createClient } = supabase;
+const sb = createClient('https://txtmyvmpxtnxuyyflaws.supabase.co', 'sb_publishable_fn5EB2pjYPOhsYt92L3iQg_sBDceD-n');
+
+const loginScreen = document.getElementById('loginScreen');
+const appContent = document.getElementById('appContent');
+const logoutBtn = document.getElementById('logoutBtn');
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
+const loginBtn = document.getElementById('loginBtn');
+
+function showApp(){
+  loginScreen.classList.add('hidden');
+  appContent.style.display = 'block';
+  logoutBtn.style.display = 'block';
+}
+function showLogin(){
+  loginScreen.classList.remove('hidden');
+  appContent.style.display = 'none';
+  logoutBtn.style.display = 'none';
+}
+
+sb.auth.getSession().then(({data}) => {
+  if(data.session) showApp(); else showLogin();
+});
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginBtn.disabled = true;
+  loginError.textContent = '';
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  loginBtn.disabled = false;
+  if(error){
+    loginError.textContent = 'Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.';
+  } else {
+    showApp();
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showLogin();
+});
 </script>
 </body>
 </html>
