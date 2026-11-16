@@ -1,5 +1,9 @@
 # Weinatlas — Projektstand
 
+> **Aktuell (November 2026):** Der Weinatlas ist jetzt eine datenbankgestützte Mehrmandanten-App mit Karte, Verwaltung, PDF-Import und Kellner-Lernbereich.
+> Quellcode: `app/src` (Build: `python app/build.py --out ../index.html`), Datenbank: `datenbank/`, Server-Funktion: `supabase/functions/`.
+> **Einrichtung und Betrieb: siehe `ANLEITUNG.md`.** Der Rest dieser Datei beschreibt den früheren Stand (weinatlas 1–8) und die ursprüngliche Planung.
+
 Stand: siehe Datum dieser Datei. Diese Notiz fasst zusammen, was bisher entschieden und gebaut wurde, damit die Arbeit in Claude Code nahtlos weitergeht.
 
 ## Worum es geht

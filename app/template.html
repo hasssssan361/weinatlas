@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Weinatlas</title>
+<style>
+/*{{CSS}}*/
+</style>
+</head>
+<body>
+
+<!-- ============ ANMELDUNG ============ -->
+<div id="screenLogin" class="screen" hidden>
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <div class="eyebrow">Herkunft &amp; Erzeuger</div>
+    <h1>Der Weinatlas</h1>
+    <p class="subtitle">Bitte melde dich an, um die Weinkarte deines Restaurants zu sehen.</p>
+    <label class="m-label">E-Mail
+      <input class="m-field" type="email" id="loginEmail" autocomplete="username" required>
+    </label>
+    <label class="m-label">Passwort
+      <input class="m-field" type="password" id="loginPw" autocomplete="current-password" required>
+    </label>
+    <button class="m-btn" id="loginBtn" type="submit">Anmelden</button>
+    <div class="m-status" id="loginMsg" role="status"></div>
+    <button class="link-btn" type="button" id="forgotBtn">Passwort vergessen?</button>
+  </form>
+  <form class="login-card" id="newPwForm" hidden>
+    <div class="eyebrow">Passwort</div>
+    <h1>Neues Passwort</h1>
+    <label class="m-label">Neues Passwort (mind. 8 Zeichen)
+      <input class="m-field" type="password" id="newPw" autocomplete="new-password" minlength="8" required>
+    </label>
+    <button class="m-btn" type="submit">Speichern</button>
+    <div class="m-status" id="newPwMsg" role="status"></div>
+  </form>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="screenApp" class="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Weinatlas</div>
+    <select id="restSelect" class="rest-select" aria-label="Restaurant"></select>
+    <nav class="tabs" id="tabs">
+      <button data-tab="map" class="active">Karte</button>
+      <button data-tab="learn">Lernen</button>
+      <button data-tab="admin" id="tabAdmin" hidden>Verwalten</button>
+    </nav>
+    <div class="user-menu">
+      <button class="link-btn" id="userBtn" title="Konto"></button>
+    </div>
+  </div>
+
+  <main>
+    <!-- Karte -->
+    <section id="viewMap" class="wrap">
+      <header>
+        <div class="eyebrow">Herkunft &amp; Erzeuger</div>
+        <h1 id="mapTitle">Der Weinatlas</h1>
+        <p class="subtitle" id="subtitle"></p>
+        <p class="hint" id="hintText">▸ Land anklicken zum Heranzoomen</p>
+      </header>
+
+      <p class="l-sub" id="emptyMap" style="text-align:center;margin-top:18px" hidden></p>
+
+      <div class="stage" id="stage">
+        <button class="backbtn" id="backBtn">← Zurück zur Weltkarte</button>
+        <div class="zoomctrls" id="zoomCtrls">
+          <button id="zoomIn" title="Vergrößern">+</button>
+          <button id="zoomOut" title="Verkleinern">−</button>
+          <button id="zoomReset" title="Zoom zurücksetzen">⟲</button>
+        </div>
+        <svg id="map" viewBox="0 0 1000 680"></svg>
+        <div class="tooltip" id="tooltip"><div class="t-name" id="ttName"></div><div class="t-info" id="ttInfo"></div></div>
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="width:6px;height:6px;"></i> wenige Positionen</span>
+        <span><i class="dot" style="width:10px;height:10px;"></i> umfangreiche Auswahl</span>
+        <span>‣ Hover = Name · Klick = Weinliste</span>
+        <span>‣ Länderansicht: Mausrad/Buttons = Zoom · Ziehen = Verschieben</span>
+      </div>
+
+      <section class="extra" id="extraOrigins" aria-labelledby="extraTitle"></section>
+      <footer id="footerText"></footer>
+    </section>
+
+    <section id="viewLearn" class="wrap narrow" hidden></section>
+    <section id="viewAdmin" class="wrap" hidden></section>
+  </main>
+</div>
+
+<div class="panel-backdrop" id="backdrop"></div>
+<div class="panel" id="panel">
+  <button class="panel-close" id="panelClose">✕</button>
+  <div id="panelContent"></div>
+</div>
+
+<div class="modal-backdrop" id="mBackdrop"></div>
+<div class="modal" id="mModal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <button class="modal-close" id="mClose" aria-label="Schließen">✕</button>
+  <div class="modal-eyebrow" id="mEyebrow"></div>
+  <h2 id="mTitle"></h2>
+  <div id="mBody"></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/*{{JS}}*/
+</script>
+</body>
+</html>
