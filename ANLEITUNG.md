@@ -26,6 +26,8 @@ Fehlermeldungen wie „already exists“ bei den ersten Dateien sind harmlos, we
 | 1 | `datenbank/schema.sql` | Tabellen und Zugriffsregeln (falls noch nicht geschehen) |
 | 2 | `datenbank/migrations/002_api.sql` | Funktionen für die App, Lernfortschritt, Team (darf mehrfach laufen) |
 | 3 | `datenbank/import_stammdaten.sql` | Anbaugebiete, Gebietsflächen, Lagen |
+| (nach den Importen) | `datenbank/migrations/003_profile_tasks_plans.sql` | Geschmacksprofil, Freigabe, Lernaufgaben, Wein der Woche, Tarife (darf mehrfach laufen; bestehende Restaurants werden auf den Tarif „enterprise“ gesetzt) |
+| (danach) | `datenbank/migrations/004_datenschutz.sql` | Daten herunterladen und Konto löschen (Konto-Menü in der App); darf mehrfach laufen |
 | 4 | `datenbank/privat/import_chefs_warehouse.sql` | Weinkarte Chefs Warehouse |
 | 5 | `datenbank/privat/import_estancia.sql` | Weinkarte Estancia Steakhaus |
 | 6 | `datenbank/privat/import_zugang.sql` | verknüpft **dein Konto** mit den Restaurants (vorher `DEINE@EMAIL.DE` durch deine Login-E-Mail ersetzen) |
@@ -77,10 +79,10 @@ Geeignet für dich als Betreiber.
 Der Key liegt dann bei dir in Supabase; jedes Restaurant hat ein Monatskontingent (Standard: 10 Auslesen), damit Kosten planbar bleiben.
 Einrichtung (Dashboard, ca. 10 Minuten):
 
-1. Datei `datenbank/migrations/002_api.sql` muss gelaufen sein (legt die Zähltabelle an).
+1. Migration `003_profile_tasks_plans.sql` muss gelaufen sein (Kontingentzähler).
 2. Supabase → **Edge Functions → Deploy a new function → Via Editor**, Name exakt `extract-winelist`, Inhalt von `supabase/functions/extract-winelist/index.ts` einfügen, deployen.
 3. In den Einstellungen dieser Funktion **„Verify JWT“ ausschalten** (die Funktion prüft die Anmeldung selbst).
-4. **Edge Functions → Secrets**: `ANTHROPIC_API_KEY` = dein Anthropic-Key. Optional `IMPORT_LIMIT` (Auslesen pro Restaurant und Monat) und `ANTHROPIC_MODEL`.
+4. **Edge Functions → Secrets**: `ANTHROPIC_API_KEY` = dein Anthropic-Key. Optional `ANTHROPIC_MODEL`. Das Monatskontingent kommt aus dem Tarif des Restaurants (Tabelle `plan_limits`, Migration 003).
 
 Ohne Schritt B zeigt der Import-Dialog einen Hinweis und bietet Weg A an.
 
@@ -115,3 +117,6 @@ Testkonten dort: `chef@test.de`, `kellner@test.de`, `cw@test.de` (Passwort `test
 * Registrierungen abschalten (Abschnitt 2), sonst kann sich jeder ein Konto und ein eigenes Restaurant anlegen.
 * Passwörter ändert jeder selbst im Konto-Menü (oben rechts).
 * Free-Plan-Grenzen von Supabase (500 MB Datenbank, begrenzte Nutzer-/Datenmenge) reichen für viele Restaurants; bei Wachstum auf den bezahlten Plan wechseln.
+
+## Weine aus Excel oder CSV importieren (kostenlos, ohne KI)
+Verwalten → „Weinkarte importieren“ → oben „Excel oder CSV“. Erste Zeile = Spaltennamen, z. B. `Erzeuger, Wein, Jahrgang, Rebsorte, Preis, Land, Region` (nur „Wein“ ist Pflicht; „Name“, „Bezeichnung“, „Weingut“, „Gebiet“ usw. werden ebenfalls erkannt). Es wird das erste Tabellenblatt gelesen; das alte Format .xls bitte als .xlsx oder CSV speichern. Danach folgt dieselbe Prüfung wie beim PDF-Import.

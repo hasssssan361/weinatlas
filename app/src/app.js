@@ -97,7 +97,29 @@ $('userBtn').addEventListener('click', ()=>{
       <button class="m-btn secondary" id="acOut">Abmelden</button>
       <button class="m-btn" id="acSave">Speichern</button>
     </div>
-    <div class="m-status" id="acMsg"></div>`);
+    <div class="m-status" id="acMsg"></div>
+    <div class="s-sub">Datenschutz</div>
+    <p class="m-note" style="margin-top:0">Gespeichert werden E-Mail, Anzeigename, Lernfortschritt und Quiz-Ergebnisse. Die Funktion „PDF auslesen“ sendet das hochgeladene PDF zur Auswertung an einen KI-Dienst (Anthropic); sie wird nur von Inhabern und Bearbeitern ausgelöst.</p>
+    <div class="m-actions" style="justify-content:flex-start">
+      <button class="m-btn secondary" id="acExport">Meine Daten herunterladen</button>
+      <button class="m-btn secondary" id="acDelete" style="color:#e08a96">Konto löschen</button>
+    </div>`);
+  $('acExport').onclick = async ()=>{
+    const msg = $('acMsg'); msg.classList.remove('err'); msg.textContent = '';
+    try{
+      const d = await Api.rpc('export_my_data', {});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
+      a.download = 'weinatlas-meine-daten.json'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+    }catch(err){ msg.textContent = err.message; msg.classList.add('err'); }
+  };
+  $('acDelete').onclick = async ()=>{
+    const msg = $('acMsg'); msg.classList.remove('err'); msg.textContent = '';
+    if(!confirm('Konto endgültig löschen? Dein Lernfortschritt und deine Ergebnisse werden gelöscht. Das kann nicht rückgängig gemacht werden.')) return;
+    try{ await Api.rpc('delete_my_account', {}); Modal.close(); Api.signOut(); }
+    catch(err){ msg.textContent = err.message; msg.classList.add('err'); }
+  };
   $('acOut').onclick = ()=>{ Modal.close(); Api.signOut(); };
   $('acSave').onclick = async ()=>{
     const msg = $('acMsg'); msg.classList.remove('err'); msg.textContent = '';
@@ -118,7 +140,7 @@ function updateUserBtn(){
 async function startApp(){
   S.tab = 'map';
   showScreen('app');
-  Learn.reset(); Admin.reset();
+  Learn.reset(); Admin.reset(); Search.reset();
   S.wines = null; S.regions = null; S.shapes = null; S.atlasDirty = true;
   const [list, prof] = await Promise.all([
     guard(()=> Api.rpc('get_my_restaurants'), 'Restaurants laden'),
@@ -141,7 +163,7 @@ function fillRestSelect(){
 $('restSelect').addEventListener('change', e=> selectRestaurant(e.target.value));
 
 function renderNoRestaurant(){
-  ['viewMap','viewLearn','viewAdmin'].forEach(id=> show(id, false));
+  ['viewMap','viewSearch','viewLearn','viewAdmin'].forEach(id=> show(id, false));
   $('tabs').hidden = true; $('restSelect').hidden = true;
   let box = $('noRest');
   if(!box){
@@ -178,7 +200,7 @@ async function selectRestaurant(rid){
   $('restSelect').value = rid;
   $('tabAdmin').hidden = !isEditor();
   S.wines = null; S.atlasDirty = true;
-  Learn.reset(); Admin.reset();
+  Learn.reset(); Admin.reset(); Search.reset();
   const title = r.city ? `${r.name}` : r.name;
   $('mapTitle').textContent = 'Der Weinatlas';
   $('subtitle').textContent = `Die Weinkarte von ${title}: jedes Land führt zu seinen Anbaugebieten auf einer Landkarte, jedes Gebiet zu den Erzeugern und Weinen der Karte.`;
@@ -241,10 +263,11 @@ async function switchTab(tab, force){
   if(tab === 'admin' && !isEditor()) tab = 'map';
   S.tab = tab;
   document.querySelectorAll('#tabs button').forEach(b=> b.classList.toggle('active', b.dataset.tab === tab));
-  show('viewMap', tab === 'map'); show('viewLearn', tab === 'learn'); show('viewAdmin', tab === 'admin');
+  show('viewMap', tab === 'map'); show('viewSearch', tab === 'search'); show('viewLearn', tab === 'learn'); show('viewAdmin', tab === 'admin');
   window.scrollTo(0, 0);
   if(tab !== 'map') Atlas.reset();
   if(tab === 'map' && S.atlasDirty) await guard(loadAtlas, 'Karte laden');
+  if(tab === 'search') await guard(()=> Search.show(), 'Suche');
   if(tab === 'learn') await guard(()=> Learn.show(), 'Lernen');
   if(tab === 'admin') await guard(()=> Admin.show(), 'Verwalten');
 }
@@ -258,7 +281,7 @@ Api.onChange(sess=>{
   /* Abgemeldet: alle Daten aus dem Speicher und von der Seite entfernen */
   S.restaurants = []; S.rid = null; S.role = null; S.wines = null; S.regions = null; S.shapes = null; S.profile = null; S.tab = 'map';
   Atlas.load({}, {}, { name: '', city: '' }); renderExtra([]);
-  Learn.reset(); Admin.reset(); Modal.close();
+  Learn.reset(); Admin.reset(); Search.reset(); Modal.close();
   showScreen('login');
 });
 (async function boot(){

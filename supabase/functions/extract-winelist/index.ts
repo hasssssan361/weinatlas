@@ -6,7 +6,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
-const MONTHLY_LIMIT = Number(Deno.env.get("IMPORT_LIMIT") ?? "10"); // Auslesen je Restaurant und Monat
 const MAX_B64 = 28 * 1024 * 1024; // ca. 20 MB PDF
 
 const cors = {
@@ -83,16 +82,11 @@ Deno.serve(async (req) => {
     .eq("restaurant_id", rid).eq("user_id", u.user.id).maybeSingle();
   if (!m || (m.role !== "owner" && m.role !== "editor")) return json(403, { error: "Dafür fehlt die Berechtigung." });
 
-  // 4. Monatskontingent
+  // 4. Monatskontingent laut Tarif (atomar in der Datenbank gezählt, siehe Migration 003)
   const admin = createClient(url, service);
-  const month = new Date().toISOString().slice(0, 7) + "-01";
-  const { data: usage } = await admin.from("import_usage").select("count")
-    .eq("restaurant_id", rid).eq("month", month).maybeSingle();
-  const used = usage?.count ?? 0;
-  if (used >= MONTHLY_LIMIT) {
-    return json(429, { error: `Das Kontingent von ${MONTHLY_LIMIT} Auslesen pro Monat ist aufgebraucht.` });
-  }
-  await admin.from("import_usage").upsert({ restaurant_id: rid, month, count: used + 1 });
+  const { data: allowed, error: qerr } = await admin.rpc("consume_quota", { p_restaurant: rid, p_kind: "import" });
+  if (qerr) return json(500, { error: "Kontingent konnte nicht geprüft werden. Wurde Migration 003 ausgeführt?" });
+  if (!allowed) return json(429, { error: "Das KI-Kontingent dieses Monats ist aufgebraucht (oder im Tarif nicht enthalten)." });
 
   // 5. Claude aufrufen und den Text direkt durchreichen (hält die Verbindung offen)
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -112,7 +106,7 @@ Deno.serve(async (req) => {
     }),
   });
   if (!upstream.ok || !upstream.body) {
-    await admin.from("import_usage").upsert({ restaurant_id: rid, month, count: used }); // Fehlversuch nicht anrechnen
+    await admin.rpc("refund_quota", { p_restaurant: rid, p_kind: "import" }); // Fehlversuch nicht anrechnen
     return json(502, { error: "Die KI-Auslese ist gerade nicht erreichbar (" + upstream.status + ")." });
   }
 

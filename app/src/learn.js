@@ -14,6 +14,7 @@ const Learn = (function(){
 
   async function load(){
     const [list, state] = await Promise.all([ ensureWines(true), Api.rpc('get_learn_state', { p_restaurant: S.rid }) ]);
+    await loadTasks();
     wines = list.filter(w=> w.is_active);
     st = {}; (state || []).forEach(s=> st[s.wine_id] = s);
   }
@@ -69,6 +70,7 @@ const Learn = (function(){
       </div>
       <div class="l-bar"><i style="width:${s.total ? Math.round(s.mastered / s.total * 100) : 0}%"></i></div>
       <div class="l-menu">
+        ${myTasks.length ? tile('tasks', 'Meine Aufgaben', 'Von der Geschäftsführung zugewiesene Lernziele.', openTasks().length + ' offen', true) : ''}
         ${tile('cards', 'Karteikarten', 'Wiederholt mit System: was du kannst, kommt seltener, was nicht, öfter.', s.due + ' fällig', wines.length > 0)}
         ${tile('quiz-origin', 'Woher kommt der Wein?', 'Ordne Weine ihrem Anbaugebiet zu.', regions + ' Herkünfte', regions >= 4)}
         ${tile('quiz-producer', 'Wer macht den Wein?', 'Ordne Weine ihrem Erzeuger zu.', producers + ' Erzeuger', producers >= 4)}
@@ -82,6 +84,7 @@ const Learn = (function(){
   }
 
   function go(id){
+    if(id === 'tasks') return tasksView();
     if(id === 'cards') return cards();
     if(id === 'quiz-origin') return quiz('origin');
     if(id === 'quiz-producer') return quiz('producer');
@@ -113,6 +116,85 @@ const Learn = (function(){
       <div class="l-actions"><button class="m-btn" id="lAgain">Noch eine Runde</button><button class="m-btn secondary" id="lMenu">Zum Menü</button></div></div>`;
     bindBack(); $('lAgain').onclick = again; $('lMenu').onclick = backToMenu;
     logScore(mode, score, total);
+  }
+
+
+  /* ---------- Meine Aufgaben ---------- */
+  let myTasks = [];
+  async function loadTasks(){
+    try{ myTasks = await Api.rpc('get_my_tasks', { p_restaurant: S.rid }) || []; }catch(e){ myTasks = []; }
+  }
+  const openTasks = ()=> myTasks.filter(t=> !t.completed_at);
+
+  async function tasksView(){
+    root().innerHTML = top() + '<div class="adm-empty">Lädt …</div>'; bindBack();
+    await loadTasks();
+    const fmt = d=> d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Frist';
+    root().innerHTML = top() + `<div class="l-head"><h2>Meine Aufgaben</h2><div class="l-sub">Von der Geschäftsführung zugewiesen</div></div>
+      ${myTasks.length ? myTasks.map(t=>{
+        const done = t.wines.filter(w=> w.done).length, late = t.due_at && !t.completed_at && new Date(t.due_at).getTime() < Date.now();
+        return `<div class="l-item" data-task="${esc(t.id)}" style="cursor:pointer"><div class="nm">${esc(t.title)} ${t.completed_at ? '<span class="badge" style="color:#8fcf9d;border-color:#4f8a5c">erledigt</span>' : ''}</div>
+          <div class="mt">Frist ${esc(fmt(t.due_at))}${late ? ' · <span style="color:#e08a96">überfällig</span>' : ''} · ${done} von ${t.wines.length} Weinen gelernt</div>
+          ${t.description ? `<div class="mt">${esc(t.description)}</div>` : ''}
+          <div class="l-bar"><i style="width:${t.wines.length ? Math.round(done / t.wines.length * 100) : 0}%"></i></div></div>`;
+      }).join('') : '<div class="adm-empty">Keine Aufgaben zugewiesen.</div>'}`;
+    bindBack();
+    root().querySelectorAll('[data-task]').forEach(el=> el.onclick = ()=> runTask(myTasks.find(t=> t.id === el.dataset.task)));
+  }
+
+  /* Eine Runde: jeder noch nicht gelernte Wein der Aufgabe wird einmal abgefragt (Herkunft, sonst Erzeuger, sonst Karteikarte). */
+  function runTask(task){
+    const byId = {}; wines.forEach(w=> byId[w.id] = w);
+    const todo = shuffle(task.wines.filter(w=> !w.done && byId[w.id]));
+    if(!todo.length){ toast('Alle Weine dieser Aufgabe sind gelernt.'); return tasksView(); }
+    const origins = [...new Set(wines.map(originOf).filter(Boolean))], prods = [...new Set(wines.map(w=> w.producer))];
+    let i = 0, right = 0;
+    const record2 = async (w, ok)=>{
+      await record(w, ok);
+      try{ await Api.rpc('task_record', { p_task: task.id, p_wine: w.id, p_correct: ok }); }catch(e){ toast('Aufgabe: ' + e.message, true); }
+    };
+    const next = ()=>{
+      if(i >= todo.length){
+        root().innerHTML = top() + `<div class="l-result card"><div class="big">${right} / ${todo.length}</div>
+          <p>${right === todo.length ? 'Alle richtig!' : 'Falsch beantwortete Weine kommen in der nächsten Runde wieder dran.'}</p>
+          <div class="l-actions"><button class="m-btn" id="tkAgain">Nächste Runde</button><button class="m-btn secondary" id="tkBack">Zu den Aufgaben</button></div></div>`;
+        bindBack(); logScore('aufgabe', right, todo.length);
+        $('tkBack').onclick = tasksView;
+        $('tkAgain').onclick = async ()=>{ await loadTasks(); const t = myTasks.find(x=> x.id === task.id); t && !t.completed_at ? runTask(t) : tasksView(); };
+        return;
+      }
+      const tw = todo[i], w = byId[tw.id];
+      let q = null;
+      if(originOf(w) && origins.length >= 4){
+        const right_ = originOf(w);
+        q = { prompt: 'Woher kommt dieser Wein?', q: wineName(w), right: right_, opts: shuffle([right_].concat(shuffle(origins.filter(x=> x !== right_)).slice(0, 3))) };
+      }else if(prods.length >= 4){
+        q = { prompt: 'Wer hat diesen Wein gemacht?', q: w.label, right: w.producer, opts: shuffle([w.producer].concat(shuffle(prods.filter(x=> x !== w.producer)).slice(0, 3))) };
+      }
+      const head = top('', `${task.title} · ${i + 1} / ${todo.length}`);
+      if(!q){   // Karteikarte
+        root().innerHTML = head + `<div class="l-card"><div class="qs">Kennst du diesen Wein?</div><div class="q">${esc(w.label)}</div><div class="l-sub">${esc(w.producer)}</div>
+          <div class="ans" id="lAns" hidden><dl><dt>Herkunft</dt><dd>${esc(originOf(w)) || '–'}</dd><dt>Preis</dt><dd>${fmtPrice(w.price)}</dd></dl></div></div>
+          <div class="l-actions" id="lAct"><button class="m-btn" id="lFlip">Antwort zeigen</button></div>`;
+        bindBack();
+        $('lFlip').onclick = ()=>{ $('lAns').hidden = false; $('lAct').innerHTML = '<button class="m-btn secondary" id="lNo">Nicht gewusst</button><button class="m-btn" id="lYes">Gewusst</button>';
+          const ans = async ok=>{ $('lNo').disabled = $('lYes').disabled = true; if(ok) right++; await record2(w, ok); i++; next(); };
+          $('lNo').onclick = ()=> ans(false); $('lYes').onclick = ()=> ans(true); };
+        return;
+      }
+      root().innerHTML = head + `<div class="l-card"><div class="qs">${esc(q.prompt)}</div><div class="q">${esc(q.q)}</div></div>
+        <div class="l-opts">${q.opts.map((o, k)=> `<button class="l-opt" data-k="${k}">${esc(o)}</button>`).join('')}</div><div class="l-actions" id="lNext"></div>`;
+      bindBack();
+      root().querySelectorAll('.l-opt').forEach(b=> b.onclick = ()=>{
+        const ok = q.opts[b.dataset.k] === q.right;
+        root().querySelectorAll('.l-opt').forEach(x=>{ x.disabled = true; if(q.opts[x.dataset.k] === q.right) x.classList.add('right'); });
+        if(!ok) b.classList.add('wrong'); else right++;
+        $('lNext').innerHTML = '<button class="m-btn" id="lGo">' + (i + 1 < todo.length ? 'Weiter' : 'Ergebnis') + '</button>';
+        const done = record2(w, ok);
+        $('lGo').onclick = async ()=>{ await done; i++; next(); };
+      });
+    };
+    next();
   }
 
   /* ---------- Karteikarten (Leitner) ---------- */

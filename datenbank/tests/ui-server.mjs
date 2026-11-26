@@ -10,6 +10,8 @@ await db.exec(readSql('datenbank/migrations/002_api.sql'));
 await db.exec(readSql('datenbank/import_stammdaten.sql'));
 await db.exec(readSql('datenbank/privat/import_estancia.sql'));
 await db.exec(readSql('datenbank/privat/import_chefs_warehouse.sql'));
+await db.exec(readSql('datenbank/migrations/003_profile_tasks_plans.sql'));
+await db.exec(readSql('datenbank/migrations/004_datenschutz.sql'));
 await db.exec(`create table test_pw(email text primary key, password text, id uuid)`);
 
 async function mkUser(email, pw, role, restName) {
@@ -35,6 +37,7 @@ const serial = (f) => (queue = queue.then(f, f));
 http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
   const url = new URL(req.url, 'http://x');
+  if (req.method === 'GET' && /^\/fonts\/[\w.-]+\.woff2$/.test(url.pathname)) { try { const b = fs.readFileSync(new URL('../..' + url.pathname, import.meta.url)); res.writeHead(200, { 'content-type': 'font/woff2' }); return res.end(b); } catch { res.writeHead(404); return res.end(); } }
   if (req.method === 'GET' && url.pathname === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(fs.readFileSync(new URL('../../app/dist/test.html', import.meta.url))); }
   const body = await readBody(req);
   const j = body ? JSON.parse(body) : {};
@@ -76,7 +79,7 @@ http.createServer(async (req, res) => {
         const names = sig.names || [];
         const keys = Object.keys(j);
         const params = [], parts = [];
-        keys.forEach((k, i) => { const ti = names.indexOf(k); params.push(typeof j[k] === 'object' && j[k] !== null ? JSON.stringify(j[k]) : j[k]); parts.push(`${k} => $${i + 1}::${types[ti]}`); });
+        keys.forEach((k, i) => { const ti = names.indexOf(k); params.push(Array.isArray(j[k]) && String(types[ti]).endsWith('[]') ? '{' + j[k].join(',') + '}' : (typeof j[k] === 'object' && j[k] !== null ? JSON.stringify(j[k]) : j[k])); parts.push(`${k} => $${i + 1}::${types[ti]}`); });
         await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub','${u.sub}',false);`);
         try {
           const r = await db.query(`select ${fn}(${parts.join(',')}) as r`, params);

@@ -153,7 +153,13 @@ Regeln:
 
     Modal.open('Weinkarte importieren', 'PDF hochladen', `
       <div id="imStep1">
-        <p class="modal-lead">PDF auswählen — die Weine werden automatisch nach Herkunftsland und Anbaugebiet sortiert. Vor dem Speichern prüfst du die Zuordnung.
+        <div class="card" style="padding:14px 16px;margin-bottom:14px">
+          <div class="s-sub" style="margin-top:0">Excel oder CSV <span class="l-sub">· kostenlos, ohne KI</span></div>
+          <p class="m-note" style="margin-top:0">Eine Zeile pro Wein. Kopfzeile mit Spalten wie <b>Erzeuger, Wein, Jahrgang, Rebsorte, Preis, Land, Region</b> (nur „Wein“ ist Pflicht).</p>
+          <label class="m-label">Tabelle (.xlsx oder .csv)<input class="m-field" type="file" id="imTable" accept=".xlsx,.csv,.txt,text/csv"></label>
+          <button class="m-btn" id="imTableRun">Tabelle einlesen</button>
+        </div>
+        <p class="modal-lead">Oder PDF auswählen — die Weine werden automatisch nach Herkunftsland und Anbaugebiet sortiert. Vor dem Speichern prüfst du die Zuordnung.
         Bereits vorhandene Weine werden erkannt (gleicher Erzeuger + gleiche Bezeichnung): Preise werden aktualisiert, Notizen und Lernfortschritt bleiben erhalten.</p>
         <label class="m-label">Weinkarte (PDF, bis 20 MB)<input class="m-field" type="file" id="imFile" accept="application/pdf,.pdf"></label>
         <label class="m-label">Eigener Anthropic-API-Key (optional)
@@ -178,6 +184,7 @@ Regeln:
       </div>`);
     $('imBack').onclick = ()=>{ $('imStep1').hidden = false; $('imStep2').hidden = true; };
     $('imRun').onclick = run;
+    $('imTableRun').onclick = runTable;
     $('imApply').onclick = apply;
   }
 
@@ -201,6 +208,22 @@ Regeln:
         ? 'Der automatische Server-Dienst ist noch nicht eingerichtet. Bitte einen eigenen Anthropic-API-Key eintragen (siehe Anleitung).'
         : (e.message || 'Unbekannter Fehler.'), true);
     }finally{ const b = $('imRun'); if(b) b.disabled = false; }
+  }
+
+  async function runTable(){
+    const file = $('imTable').files[0];
+    if(!file) return setStatus('Bitte eine Excel- oder CSV-Datei auswählen.', true);
+    if(file.size > 5 * 1024 * 1024) return setStatus('Die Datei ist größer als 5 MB.', true);
+    $('imTableRun').disabled = true; setStatus('Tabelle wird gelesen …');
+    try{
+      parsed = await TableParse.fromFile(file);
+      renderReview(); setStatus('');
+      const extra = (parsed.skipped.length ? ' ' + parsed.skipped.length + ' Zeile(n) ohne Weinnamen übersprungen.' : '')
+        + (parsed.missing.length ? ' Nicht gefunden: ' + parsed.missing.map(k=> TableParse.MISSING_NAME[k]).join(', ') + '.' : '');
+      $('imSummary').textContent += extra;
+      $('imStep1').hidden = true; $('imStep2').hidden = false;
+    }catch(e){ setStatus(e.message || 'Die Tabelle konnte nicht gelesen werden.', true); }
+    finally{ const b = $('imTableRun'); if(b) b.disabled = false; }
   }
 
   const OTHER = '__other__';

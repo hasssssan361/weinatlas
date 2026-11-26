@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.anthropic.com; base-uri 'none'; form-action 'none'">
 <title>Weinatlas</title>
 <style>
 /*{{CSS}}*/
@@ -45,6 +46,7 @@
     <select id="restSelect" class="rest-select" aria-label="Restaurant"></select>
     <nav class="tabs" id="tabs">
       <button data-tab="map" class="active">Karte</button>
+      <button data-tab="search">Suche</button>
       <button data-tab="learn">Lernen</button>
       <button data-tab="admin" id="tabAdmin" hidden>Verwalten</button>
     </nav>
@@ -87,6 +89,7 @@
       <footer id="footerText"></footer>
     </section>
 
+    <section id="viewSearch" class="wrap narrow" hidden></section>
     <section id="viewLearn" class="wrap narrow" hidden></section>
     <section id="viewAdmin" class="wrap" hidden></section>
   </main>

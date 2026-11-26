@@ -4,9 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.anthropic.com; base-uri 'none'; form-action 'none'">
 <title>Weinatlas</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Schriften werden selbst ausgeliefert (Ordner fonts/), keine Verbindung zu Google-Servern (DSGVO) */
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:300;font-display:swap;src:url('fonts/fraunces-latin-300-normal.woff2') format('woff2');}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/fraunces-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/fraunces-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Fraunces';font-style:italic;font-weight:500;font-display:swap;src:url('fonts/fraunces-latin-500-italic.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/inter-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');}
 
 :root{
   --ink:#100d0b;
@@ -375,6 +385,41 @@ footer{text-align:center;color:var(--parchment-dim);font-size:12px;margin-top:40
   .rev-count{text-align:left;}
 }
 
+/* Weinsuche */
+.s-form{margin-top:6px;}
+.s-form .l-search{margin-bottom:10px;}
+.s-colors{display:flex;gap:6px;flex-wrap:wrap;}
+.s-colors button{flex:1;min-width:64px;background:var(--panel);border:1px solid var(--line);color:var(--parchment-dim);padding:11px 8px;border-radius:10px;cursor:pointer;font-size:14px;}
+.s-colors button.on{border-color:var(--gold);color:var(--gold-bright);background:rgba(201,163,93,.08);}
+.s-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px;}
+.s-scales{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:12px;}
+.s-row{display:flex;align-items:center;gap:8px;}
+.s-lab{width:92px;font-size:13px;color:var(--parchment-dim);flex-shrink:0;}
+.s-row .m-select{margin-top:0;flex:1;min-width:0;padding:10px 8px;}
+.s-star{background:none;border:1px solid var(--line);color:var(--parchment-dim);border-radius:8px;width:38px;height:38px;cursor:pointer;font-size:16px;opacity:.5;}
+.s-star.on{color:var(--gold-bright);border-color:var(--gold);opacity:1;}
+.s-card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px;background:linear-gradient(180deg,var(--panel),var(--panel2));}
+.s-head{display:flex;gap:12px;align-items:flex-start;}
+.s-title{flex:1;}
+.s-title .nm{font-family:'Fraunces',serif;font-size:19px;line-height:1.25;}
+.s-title .mt{font-size:13px;color:var(--parchment-dim);margin-top:2px;}
+.s-price{font-family:'IBM Plex Mono',monospace;color:var(--gold-bright);white-space:nowrap;}
+.s-score{display:flex;align-items:center;gap:10px;margin:12px 0 4px;flex-wrap:wrap;}
+.s-score .bar{flex:1;min-width:90px;height:8px;border-radius:6px;background:rgba(201,163,93,.15);overflow:hidden;}
+.s-score .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--wine-bright),var(--gold));}
+.s-score b{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--gold-bright);font-weight:500;}
+.s-score span{font-size:11.5px;color:var(--parchment-dim);font-family:'IBM Plex Mono',monospace;}
+.s-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px;}
+.s-chips span{font-size:12px;border:1px solid var(--line);border-radius:20px;padding:2px 10px;color:var(--parchment-dim);}
+.s-why{font-size:13.5px;line-height:1.55;margin-top:10px;color:var(--parchment);}
+.s-pitch{font-family:'Fraunces',serif;font-style:italic;font-size:15.5px;line-height:1.5;margin-top:10px;padding-left:12px;border-left:2px solid var(--gold);color:var(--parchment);}
+.s-note{font-size:12px;color:var(--parchment-dim);margin-top:8px;opacity:.8;}
+.s-foot{margin:18px 2px 0;font-size:12px;line-height:1.5;}
+@media (max-width:640px){ .s-scales{grid-template-columns:1fr;} .s-lab{width:96px;} .s-card{padding:14px;} }
+
+.s-feat{border-color:var(--gold);margin-bottom:16px;}
+.s-list{margin:10px 0 0;padding-left:20px;font-size:14px;line-height:1.6;}
+
 
 </style>
 </head>
@@ -414,6 +459,7 @@ footer{text-align:center;color:var(--parchment-dim);font-size:12px;margin-top:40
     <select id="restSelect" class="rest-select" aria-label="Restaurant"></select>
     <nav class="tabs" id="tabs">
       <button data-tab="map" class="active">Karte</button>
+      <button data-tab="search">Suche</button>
       <button data-tab="learn">Lernen</button>
       <button data-tab="admin" id="tabAdmin" hidden>Verwalten</button>
     </nav>
@@ -456,6 +502,7 @@ footer{text-align:center;color:var(--parchment-dim);font-size:12px;margin-top:40
       <footer id="footerText"></footer>
     </section>
 
+    <section id="viewSearch" class="wrap narrow" hidden></section>
     <section id="viewLearn" class="wrap narrow" hidden></section>
     <section id="viewAdmin" class="wrap" hidden></section>
   </main>
@@ -1158,6 +1205,345 @@ const Api = (function(){
   };
 })();
 
+/* ---- searchcore.js ---- */
+/* ================= WEINSUCHE: Bewertungslogik (reine Funktionen, ohne Oberfläche) =================
+   Bewertet Weine des eigenen Restaurants gegen die Wünsche eines Gastes.
+   Grundsätze:
+   - Unbekannte Eigenschaften gelten NIE als passend: sie bringen 0 Punkte, zählen aber im Nenner mit.
+   - Fakten (Land, Region, Farbe, Preis, Stichwort) schließen Weine aus, wenn sie nachweislich nicht passen.
+   - Der Wert ist ein rechnerischer Match-Score, keine Qualitätsbewertung.                                   */
+const SearchCore = (function(){
+  const LEVELS = { low: [1, 2], mid: [3, 3], high: [4, 5] };
+  const SCALES = {
+    body:       { label: 'Körper',      names: { low: 'leicht', mid: 'mittel', high: 'kräftig' } },
+    acidity:    { label: 'Säure',       names: { low: 'niedrig', mid: 'mittel', high: 'hoch' } },
+    tannin:     { label: 'Tannine',     names: { low: 'weich', mid: 'mittel', high: 'kräftig' } },
+    sweetness:  { label: 'Süße',        names: { low: 'trocken', mid: 'halbtrocken', high: 'süß' } },
+    fruit:      { label: 'Frucht',      names: { low: 'dezent', mid: 'mittel', high: 'intensiv' } },
+    minerality: { label: 'Mineralität', names: { low: 'wenig', mid: 'mittel', high: 'ausgeprägt' } },
+    oak:        { label: 'Holz',        names: { low: 'kein/wenig', mid: 'leicht', high: 'deutlich' } }
+  };
+  const COLORS = { rot: 'Rot', weiss: 'Weiß', rose: 'Rosé', schaum: 'Schaumwein' };
+
+  const norm = t => String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+  const has = (hay, needle) => norm(hay).includes(norm(needle).trim());
+
+  /* Farbe: Profil vor Kategorie-Text. Gibt { value, src } oder null. */
+  function colorOf(w){
+    if(w.profile && w.profile.color) return { value: w.profile.color, src: 'Profil' };
+    const c = norm(w.category);
+    if(c){
+      if(/champagner|schaum|sekt|cremant|prosecco|cava|spumante|cremant/.test(c)) return { value: 'schaum', src: 'Kategorie' };
+      if(/rose/.test(c)) return { value: 'rose', src: 'Kategorie' };
+      if(/rot/.test(c)) return { value: 'rot', src: 'Kategorie' };
+      if(/weiss|weiß/.test(c)) return { value: 'weiss', src: 'Kategorie' };
+    }
+    return null;
+  }
+
+  function wineCountry(w){ return w.country || w.origin_country || ''; }
+  function wineRegion(w){ return w.region || w.origin_region || ''; }
+
+  function haystack(w){
+    const p = w.profile || {}, n = w.notes || {};
+    return [w.label, w.producer, wineCountry(w), wineRegion(w), w.site, (p.grapes || []).join(' '), (p.aromas || []).join(' '), n.aroma].join(' ');
+  }
+
+  /* Skala: 1 = im gewünschten Bereich, 0.5 = eine Stufe daneben, 0 = weiter weg, null = unbekannt */
+  function scaleScore(value, level){
+    if(value == null) return null;
+    const [lo, hi] = LEVELS[level];
+    if(value >= lo && value <= hi) return 1;
+    if(value === lo - 1 || value === hi + 1) return 0.5;
+    return 0;
+  }
+
+  function textList(w, kind){
+    const p = w.profile || {}, n = w.notes || {};
+    if(kind === 'aroma') return [].concat(p.aromas || [], n.aroma ? [n.aroma] : []);
+    if(kind === 'food')  return [].concat(p.pairing_dishes || [], n.pairing ? [n.pairing] : []);
+    if(kind === 'grape') return p.grapes || [];
+    return [];
+  }
+
+  /* Prüft einen Textwunsch (Aroma/Speise/Rebsorte): 1 = gefunden, 0 = Daten vorhanden aber nicht gefunden, null = keine Daten */
+  function textScore(w, kind, wanted){
+    const list = textList(w, kind);
+    if(kind === 'grape' && has(w.label, wanted)) return 1;          // Rebsorte steht oft in der Bezeichnung
+    if(!list.length) return null;
+    return list.some(x => has(x, wanted)) ? 1 : 0;
+  }
+
+  function isActive(c){
+    return !!(c.q || c.color || c.priceMax != null && c.priceMax !== '' || c.country || c.region || c.grape || c.aroma || c.food ||
+      Object.keys(SCALES).some(k => c[k]));
+  }
+
+  function evaluate(w, c){
+    const parts = [];                 // { key, label, state: match|near|miss|unknown, text }
+    const fail = reason => ({ excluded: true, reason });
+
+    // ---- harte Filter (Fakten) ----
+    if(c.q){
+      const hay = haystack(w);
+      if(!norm(c.q).split(/\s+/).filter(Boolean).every(t => has(hay, t))) return fail('Stichwort');
+    }
+    if(c.country && wineCountry(w) !== c.country) return fail('Land');
+    if(c.region && wineRegion(w) !== c.region) return fail('Region');
+    const max = c.priceMax === '' || c.priceMax == null ? null : Number(c.priceMax);
+    if(max != null && isFinite(max) && w.price != null && Number(w.price) > max) return fail('Preis');
+
+    let earned = 0, total = 0, known = 0;
+    const add = (key, label, m, text, important) => {
+      const wt = important ? 2 : 1;
+      total += wt;
+      if(m != null){ known += wt; earned += wt * m; }
+      parts.push({ key, label, state: m == null ? 'unknown' : m === 1 ? 'match' : m === 0.5 ? 'near' : 'miss', text, weight: wt });
+    };
+    const imp = k => !!(c.important && c.important[k]);
+
+    // ---- Farbe: bekannt und falsch = ausgeschlossen ----
+    if(c.color){
+      const col = colorOf(w);
+      if(col && col.value !== c.color) return fail('Farbe');
+      add('color', 'Farbe', col ? 1 : null, col ? COLORS[col.value] + (col.src === 'Kategorie' ? ' (laut Kategorie)' : '') : 'Farbe nicht hinterlegt', imp('color'));
+    }
+    // ---- Preis nur bei unbekanntem Preis relevant ----
+    if(max != null && isFinite(max) && w.price == null) add('price', 'Preis', null, 'Preis nicht hinterlegt', false);
+
+    // ---- Skalen ----
+    for(const k of Object.keys(SCALES)){
+      if(!c[k]) continue;
+      const v = w.profile ? w.profile[k] : null;
+      const m = scaleScore(v == null ? null : Number(v), c[k]);
+      const want = SCALES[k].names[c[k]];
+      add(k, SCALES[k].label, m, m == null ? SCALES[k].label + ' nicht hinterlegt'
+        : m === 1 ? SCALES[k].label + ' ' + want
+        : m === 0.5 ? SCALES[k].label + ' fast ' + want + ' (Stufe ' + v + ' von 5)'
+        : SCALES[k].label + ' weicht ab (Stufe ' + v + ' von 5, gewünscht ' + want + ')', imp(k));
+    }
+    // ---- Textwünsche ----
+    if(c.grape){ const m = textScore(w, 'grape', c.grape); add('grape', 'Rebsorte', m, m == null ? 'Rebsorte nicht hinterlegt' : m === 1 ? 'Rebsorte ' + c.grape : 'andere Rebsorte', imp('grape')); }
+    if(c.aroma){ const m = textScore(w, 'aroma', c.aroma); add('aroma', 'Aroma', m, m == null ? 'Aromen nicht hinterlegt' : m === 1 ? 'Aroma „' + c.aroma + '“' : 'Aroma „' + c.aroma + '“ nicht genannt', imp('aroma')); }
+    if(c.food){ const m = textScore(w, 'food', c.food); add('food', 'Speise', m, m == null ? 'Speiseempfehlung nicht hinterlegt' : m === 1 ? 'passt zu „' + c.food + '“' : '„' + c.food + '“ nicht empfohlen', imp('food')); }
+
+    const score = total ? Math.round(100 * earned / total) : null;
+    return { excluded: false, score, known: total ? known / total : 1, parts };
+  }
+
+  /* Weine bewerten, filtern und sortieren. Gibt [{ wine, score, known, parts }] zurück. */
+  function search(wines, c){
+    const out = [];
+    for(const w of wines){
+      if(w.is_active === false) continue;
+      const r = evaluate(w, c);
+      if(r.excluded) continue;
+      out.push(Object.assign({ wine: w }, r));
+    }
+    out.sort((a, b) =>
+      (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score) ||
+      b.known - a.known ||
+      (a.wine.price == null ? 1e9 : Number(a.wine.price)) - (b.wine.price == null ? 1e9 : Number(b.wine.price)) ||
+      String(a.wine.label).localeCompare(String(b.wine.label), 'de'));
+    return out;
+  }
+
+  /* Begründung: nur belegte Treffer nennen, Unbekanntes ausdrücklich als unbekannt */
+  function explain(r){
+    const ok = r.parts.filter(p => p.state === 'match').map(p => p.text);
+    const near = r.parts.filter(p => p.state === 'near').map(p => p.text);
+    const miss = r.parts.filter(p => p.state === 'miss').map(p => p.text);
+    const unk = r.parts.filter(p => p.state === 'unknown').map(p => p.label);
+    let t = ok.length ? 'Passt, weil: ' + ok.join(', ') + '.' : 'Keine der gewünschten Eigenschaften ist belegt.';
+    if(near.length) t += ' Knapp daneben: ' + near.join(', ') + '.';
+    if(miss.length) t += ' Passt nicht: ' + miss.join(', ') + '.';
+    if(unk.length) t += ' Unbekannt: ' + unk.join(', ') + '.';
+    return t;
+  }
+
+  /* Satz für den Service: Freigegebene Texte zuerst, sonst nur belegte Fakten */
+  function pitch(w){
+    const p = w.profile || {};
+    if(p.guest_hint) return p.guest_hint;
+    if(p.description_service) return p.description_service;
+    const bits = [];
+    const grapes = (p.grapes || []);
+    if(grapes.length) bits.push(grapes.join(', '));
+    for(const k of ['body', 'acidity', 'tannin', 'oak']){
+      if(p[k] != null){
+        const lvl = p[k] <= 2 ? 'low' : p[k] === 3 ? 'mid' : 'high';
+        bits.push(SCALES[k].label.toLowerCase() + ' ' + SCALES[k].names[lvl]);
+      }
+    }
+    if((p.aromas || []).length) bits.push('Aromen von ' + p.aromas.slice(0, 3).join(', '));
+    const where = [wineRegion(w), wineCountry(w)].filter(Boolean).join(', ');
+    if(!bits.length) return where ? 'Ein Wein aus ' + where + '.' : '';
+    return (where ? 'Aus ' + where + ': ' : '') + bits.join(', ') + '.';
+  }
+
+  return { SCALES, COLORS, LEVELS, evaluate, search, explain, pitch, isActive, colorOf, norm };
+})();
+
+/* ---- search.js ---- */
+/* ================= WEINSUCHE (Oberfläche) ================= */
+const Search = (function(){
+  const root = ()=> $('viewSearch');
+  let crit = {}, shown = 20, featured = null;
+
+  function reset(){ crit = { important: {} }; shown = 20; root().innerHTML = ''; }
+
+  const originOf = w=> [w.region || w.origin_region, w.country || w.origin_country].filter(Boolean).join(', ');
+
+  async function show(){
+    if(!root().firstChild){
+      root().innerHTML = '<div class="adm-empty">Lädt …</div>';
+      await ensureWines();
+      featured = await Api.rpc('get_featured', { p_restaurant: S.rid }).catch(()=> null);
+      build();
+    }else{
+      await ensureWines();       // Daten könnten sich geändert haben
+      featured = await Api.rpc('get_featured', { p_restaurant: S.rid }).catch(()=> null);
+      $('sFeat').innerHTML = featuredHtml();
+      fillCountries(); run();
+    }
+  }
+
+  function build(){
+    const lvl = (k)=> {
+      const sc = SearchCore.SCALES[k];
+      return `<div class="s-row"><label class="s-lab" for="sc_${k}">${sc.label}</label>
+        <select class="m-select" id="sc_${k}" data-k="${k}">
+          <option value="">egal</option>
+          <option value="low">${sc.names.low}</option><option value="mid">${sc.names.mid}</option><option value="high">${sc.names.high}</option>
+        </select><button type="button" class="s-star" data-star="${k}" title="Besonders wichtig" aria-label="Besonders wichtig" aria-pressed="false">★</button></div>`;
+    };
+    root().innerHTML = `
+      <div class="l-head"><h2>Weinberatung</h2><div class="l-sub">Was wünscht sich der Gast? Gesucht wird nur im Sortiment dieses Restaurants.</div></div>
+      <div id="sFeat">${featuredHtml()}</div>
+      <div class="card s-form">
+        <input class="l-search" id="sQ" type="search" placeholder="Stichwort (z. B. Riesling, Mosel, Kirsche) …" autocomplete="off">
+        <div class="s-colors" id="sColors" role="group" aria-label="Weinfarbe">
+          <button type="button" data-color="" class="on">Alle</button><button type="button" data-color="rot">Rot</button><button type="button" data-color="weiss">Weiß</button><button type="button" data-color="rose">Rosé</button><button type="button" data-color="schaum">Schaumwein</button>
+        </div>
+        <div class="m-grid" style="margin-top:12px">
+          <label class="m-label">Preis bis (€)<input class="m-field" id="sPrice" inputmode="numeric" placeholder="egal"></label>
+          <label class="m-label">Rebsorte<input class="m-field" id="sGrape" placeholder="z. B. Pinot Noir" autocomplete="off"></label>
+          <label class="m-label">Land<select class="m-select" id="sCountry"></select></label>
+          <label class="m-label">Region<select class="m-select" id="sRegion"></select></label>
+        </div>
+        <div class="s-sub">Geschmack <span class="l-sub">· ★ = besonders wichtig</span></div>
+        <div class="s-scales">${Object.keys(SearchCore.SCALES).map(lvl).join('')}</div>
+        <div class="m-grid">
+          <label class="m-label">Aroma<input class="m-field" id="sAroma" placeholder="z. B. Vanille, Zitrus" autocomplete="off"></label>
+          <label class="m-label">Passt zu (Speise)<input class="m-field" id="sFood" placeholder="z. B. Rinderfilet" autocomplete="off"></label>
+        </div>
+        <div class="m-actions" style="margin-top:12px"><button type="button" class="btn-s" id="sReset">Zurücksetzen</button></div>
+      </div>
+      <div id="sCount" class="l-sub" style="margin:6px 2px 10px"></div>
+      <div id="sRes"></div>
+      <p class="l-sub s-foot">Die Passung ist ein rechnerischer Wert aus den hinterlegten Eigenschaften, keine Qualitätsbewertung.
+      Nicht hinterlegte Eigenschaften zählen nie als passend. Profile sind erst sichtbar, wenn sie vom Restaurant freigegeben wurden.</p>`;
+
+    const r = root();
+    r.querySelector('#sQ').oninput = e=>{ crit.q = e.target.value; shown = 20; run(); };
+    r.querySelector('#sColors').onclick = e=>{
+      const b = e.target.closest('button[data-color]'); if(!b) return;
+      crit.color = b.dataset.color; shown = 20;
+      r.querySelectorAll('#sColors button').forEach(x=> x.classList.toggle('on', x === b)); run();
+    };
+    r.querySelector('#sPrice').oninput = e=>{ const v = e.target.value.trim().replace(',', '.'); crit.priceMax = v === '' ? null : Number(v); if(crit.priceMax != null && !isFinite(crit.priceMax)) crit.priceMax = null; shown = 20; run(); };
+    r.querySelector('#sGrape').oninput = e=>{ crit.grape = e.target.value.trim(); shown = 20; run(); };
+    r.querySelector('#sAroma').oninput = e=>{ crit.aroma = e.target.value.trim(); shown = 20; run(); };
+    r.querySelector('#sFood').oninput = e=>{ crit.food = e.target.value.trim(); shown = 20; run(); };
+    r.querySelector('#sCountry').onchange = e=>{ crit.country = e.target.value; crit.region = ''; fillRegions(); shown = 20; run(); };
+    r.querySelector('#sRegion').onchange = e=>{ crit.region = e.target.value; shown = 20; run(); };
+    r.querySelectorAll('select[data-k]').forEach(s=> s.onchange = ()=>{ crit[s.dataset.k] = s.value; shown = 20; run(); });
+    r.querySelectorAll('[data-star]').forEach(b=> b.onclick = ()=>{
+      const k = b.dataset.star; crit.important[k] = !crit.important[k];
+      b.classList.toggle('on', !!crit.important[k]); b.setAttribute('aria-pressed', String(!!crit.important[k])); run();
+    });
+    r.querySelector('#sReset').onclick = ()=>{ reset(); build(); };
+    r.querySelector('#sRes').onclick = e=>{
+      if(e.target.closest('#sMore')){ shown += 20; run(); }
+      const c = e.target.closest('.s-card'); if(c && !e.target.closest('a,button')) c.classList.toggle('open');
+    };
+    fillCountries(); run();
+  }
+
+  /* Wein der Woche: nur belegte/freigegebene Angaben */
+  function featuredHtml(){
+    const w = featured && (S.wines || []).find(x=> x.id === featured && x.is_active);
+    if(!w) return '';
+    const p = w.profile || {};
+    const pitch = SearchCore.pitch(w);
+    return `<div class="card s-feat"><div class="s-sub" style="margin-top:0">★ Wein der Woche</div>
+      <div class="s-head"><div class="s-title"><div class="nm">${esc(w.label)}</div><div class="mt">${esc(w.producer)} · ${esc(originOf(w))}</div></div><div class="s-price">${fmtPrice(w.price)}</div></div>
+      ${chips(w)}
+      ${pitch ? `<div class="s-pitch">„${esc(pitch)}“</div>` : ''}
+      ${(p.selling_points || []).length ? `<ul class="s-list">${p.selling_points.map(x=> `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${(p.pairing_dishes || []).length ? `<div class="s-why"><b>Dazu:</b> ${esc(p.pairing_dishes.join(', '))}</div>` : ''}
+    </div>`;
+  }
+
+  function fillCountries(){
+    const wines = (S.wines || []).filter(w=> w.is_active);
+    const sel = $('sCountry'); if(!sel) return;
+    const cs = [...new Set(wines.map(w=> w.country || w.origin_country).filter(Boolean))].sort((a, b)=> a.localeCompare(b, 'de'));
+    sel.innerHTML = '<option value="">alle</option>' + cs.map(c=> `<option ${c === crit.country ? 'selected' : ''}>${esc(c)}</option>`).join('');
+    fillRegions();
+  }
+  function fillRegions(){
+    const wines = (S.wines || []).filter(w=> w.is_active && (!crit.country || (w.country || w.origin_country) === crit.country));
+    const rs = [...new Set(wines.map(w=> w.region || w.origin_region).filter(Boolean))].sort((a, b)=> a.localeCompare(b, 'de'));
+    const sel = $('sRegion'); if(!sel) return;
+    sel.innerHTML = '<option value="">alle</option>' + rs.map(c=> `<option ${c === crit.region ? 'selected' : ''}>${esc(c)}</option>`).join('');
+    sel.disabled = !rs.length;
+  }
+
+  function chips(w){
+    const p = w.profile; if(!p) return '';
+    const out = [];
+    if(p.color) out.push(SearchCore.COLORS[p.color]);
+    (p.grapes || []).slice(0, 3).forEach(g=> out.push(g));
+    for(const k of Object.keys(SearchCore.SCALES)){
+      if(p[k] != null){ const lv = p[k] <= 2 ? 'low' : p[k] === 3 ? 'mid' : 'high'; out.push(SearchCore.SCALES[k].label + ' ' + SearchCore.SCALES[k].names[lv]); }
+    }
+    (p.aromas || []).slice(0, 4).forEach(a=> out.push(a));
+    return out.length ? '<div class="s-chips">' + out.map(c=> `<span>${esc(c)}</span>`).join('') + '</div>' : '';
+  }
+
+  function card(r){
+    const w = r.wine, scored = r.score != null;
+    const pitch = SearchCore.pitch(w);
+    const profNote = !w.profile ? 'Kein Geschmacksprofil hinterlegt' : (w.profile.status === 'draft' ? 'Profil noch nicht freigegeben' : '');
+    return `<article class="s-card">
+      <div class="s-head">
+        <div class="s-title"><div class="nm">${esc(w.label)}</div><div class="mt">${esc(w.producer)} · ${esc(originOf(w))}</div></div>
+        <div class="s-price">${fmtPrice(w.price)}</div>
+      </div>
+      ${scored ? `<div class="s-score"><div class="bar"><i style="width:${r.score}%"></i></div><b>${r.score} % Passung</b><span>Datenlage ${Math.round(r.known * 100)} %</span></div>` : ''}
+      ${chips(w)}
+      ${scored ? `<div class="s-why">${esc(SearchCore.explain(r))}</div>` : ''}
+      ${pitch ? `<div class="s-pitch">„${esc(pitch)}“</div>` : ''}
+      ${profNote ? `<div class="s-note">${esc(profNote)}</div>` : ''}
+    </article>`;
+  }
+
+  function run(){
+    const res = $('sRes'); if(!res) return;
+    const wines = S.wines || [];
+    const active = SearchCore.isActive(crit);
+    const out = SearchCore.search(wines, crit);
+    $('sCount').textContent = !wines.length ? 'Noch keine Weine vorhanden.' :
+      (active ? out.length + ' passende' + (out.length === 1 ? 'r Wein' : ' Weine') : out.length + ' Weine im Sortiment — Wünsche eingeben, um zu sortieren');
+    if(!out.length){ res.innerHTML = '<div class="adm-empty">Kein Wein passt zu diesen Wünschen. Einzelne Wünsche lockern?</div>'; return; }
+    res.innerHTML = out.slice(0, shown).map(card).join('')
+      + (out.length > shown ? `<div class="l-actions"><button class="m-btn secondary" id="sMore">Mehr anzeigen (${out.length - shown})</button></div>` : '');
+  }
+
+  return { show, reset };
+})();
+
 /* ---- learn.js ---- */
 /* ================= LERNEN: Karteikarten, Quiz, Nachschlagen, Bestenliste ================= */
 const Learn = (function(){
@@ -1175,6 +1561,7 @@ const Learn = (function(){
 
   async function load(){
     const [list, state] = await Promise.all([ ensureWines(true), Api.rpc('get_learn_state', { p_restaurant: S.rid }) ]);
+    await loadTasks();
     wines = list.filter(w=> w.is_active);
     st = {}; (state || []).forEach(s=> st[s.wine_id] = s);
   }
@@ -1230,6 +1617,7 @@ const Learn = (function(){
       </div>
       <div class="l-bar"><i style="width:${s.total ? Math.round(s.mastered / s.total * 100) : 0}%"></i></div>
       <div class="l-menu">
+        ${myTasks.length ? tile('tasks', 'Meine Aufgaben', 'Von der Geschäftsführung zugewiesene Lernziele.', openTasks().length + ' offen', true) : ''}
         ${tile('cards', 'Karteikarten', 'Wiederholt mit System: was du kannst, kommt seltener, was nicht, öfter.', s.due + ' fällig', wines.length > 0)}
         ${tile('quiz-origin', 'Woher kommt der Wein?', 'Ordne Weine ihrem Anbaugebiet zu.', regions + ' Herkünfte', regions >= 4)}
         ${tile('quiz-producer', 'Wer macht den Wein?', 'Ordne Weine ihrem Erzeuger zu.', producers + ' Erzeuger', producers >= 4)}
@@ -1243,6 +1631,7 @@ const Learn = (function(){
   }
 
   function go(id){
+    if(id === 'tasks') return tasksView();
     if(id === 'cards') return cards();
     if(id === 'quiz-origin') return quiz('origin');
     if(id === 'quiz-producer') return quiz('producer');
@@ -1274,6 +1663,85 @@ const Learn = (function(){
       <div class="l-actions"><button class="m-btn" id="lAgain">Noch eine Runde</button><button class="m-btn secondary" id="lMenu">Zum Menü</button></div></div>`;
     bindBack(); $('lAgain').onclick = again; $('lMenu').onclick = backToMenu;
     logScore(mode, score, total);
+  }
+
+
+  /* ---------- Meine Aufgaben ---------- */
+  let myTasks = [];
+  async function loadTasks(){
+    try{ myTasks = await Api.rpc('get_my_tasks', { p_restaurant: S.rid }) || []; }catch(e){ myTasks = []; }
+  }
+  const openTasks = ()=> myTasks.filter(t=> !t.completed_at);
+
+  async function tasksView(){
+    root().innerHTML = top() + '<div class="adm-empty">Lädt …</div>'; bindBack();
+    await loadTasks();
+    const fmt = d=> d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Frist';
+    root().innerHTML = top() + `<div class="l-head"><h2>Meine Aufgaben</h2><div class="l-sub">Von der Geschäftsführung zugewiesen</div></div>
+      ${myTasks.length ? myTasks.map(t=>{
+        const done = t.wines.filter(w=> w.done).length, late = t.due_at && !t.completed_at && new Date(t.due_at).getTime() < Date.now();
+        return `<div class="l-item" data-task="${esc(t.id)}" style="cursor:pointer"><div class="nm">${esc(t.title)} ${t.completed_at ? '<span class="badge" style="color:#8fcf9d;border-color:#4f8a5c">erledigt</span>' : ''}</div>
+          <div class="mt">Frist ${esc(fmt(t.due_at))}${late ? ' · <span style="color:#e08a96">überfällig</span>' : ''} · ${done} von ${t.wines.length} Weinen gelernt</div>
+          ${t.description ? `<div class="mt">${esc(t.description)}</div>` : ''}
+          <div class="l-bar"><i style="width:${t.wines.length ? Math.round(done / t.wines.length * 100) : 0}%"></i></div></div>`;
+      }).join('') : '<div class="adm-empty">Keine Aufgaben zugewiesen.</div>'}`;
+    bindBack();
+    root().querySelectorAll('[data-task]').forEach(el=> el.onclick = ()=> runTask(myTasks.find(t=> t.id === el.dataset.task)));
+  }
+
+  /* Eine Runde: jeder noch nicht gelernte Wein der Aufgabe wird einmal abgefragt (Herkunft, sonst Erzeuger, sonst Karteikarte). */
+  function runTask(task){
+    const byId = {}; wines.forEach(w=> byId[w.id] = w);
+    const todo = shuffle(task.wines.filter(w=> !w.done && byId[w.id]));
+    if(!todo.length){ toast('Alle Weine dieser Aufgabe sind gelernt.'); return tasksView(); }
+    const origins = [...new Set(wines.map(originOf).filter(Boolean))], prods = [...new Set(wines.map(w=> w.producer))];
+    let i = 0, right = 0;
+    const record2 = async (w, ok)=>{
+      await record(w, ok);
+      try{ await Api.rpc('task_record', { p_task: task.id, p_wine: w.id, p_correct: ok }); }catch(e){ toast('Aufgabe: ' + e.message, true); }
+    };
+    const next = ()=>{
+      if(i >= todo.length){
+        root().innerHTML = top() + `<div class="l-result card"><div class="big">${right} / ${todo.length}</div>
+          <p>${right === todo.length ? 'Alle richtig!' : 'Falsch beantwortete Weine kommen in der nächsten Runde wieder dran.'}</p>
+          <div class="l-actions"><button class="m-btn" id="tkAgain">Nächste Runde</button><button class="m-btn secondary" id="tkBack">Zu den Aufgaben</button></div></div>`;
+        bindBack(); logScore('aufgabe', right, todo.length);
+        $('tkBack').onclick = tasksView;
+        $('tkAgain').onclick = async ()=>{ await loadTasks(); const t = myTasks.find(x=> x.id === task.id); t && !t.completed_at ? runTask(t) : tasksView(); };
+        return;
+      }
+      const tw = todo[i], w = byId[tw.id];
+      let q = null;
+      if(originOf(w) && origins.length >= 4){
+        const right_ = originOf(w);
+        q = { prompt: 'Woher kommt dieser Wein?', q: wineName(w), right: right_, opts: shuffle([right_].concat(shuffle(origins.filter(x=> x !== right_)).slice(0, 3))) };
+      }else if(prods.length >= 4){
+        q = { prompt: 'Wer hat diesen Wein gemacht?', q: w.label, right: w.producer, opts: shuffle([w.producer].concat(shuffle(prods.filter(x=> x !== w.producer)).slice(0, 3))) };
+      }
+      const head = top('', `${task.title} · ${i + 1} / ${todo.length}`);
+      if(!q){   // Karteikarte
+        root().innerHTML = head + `<div class="l-card"><div class="qs">Kennst du diesen Wein?</div><div class="q">${esc(w.label)}</div><div class="l-sub">${esc(w.producer)}</div>
+          <div class="ans" id="lAns" hidden><dl><dt>Herkunft</dt><dd>${esc(originOf(w)) || '–'}</dd><dt>Preis</dt><dd>${fmtPrice(w.price)}</dd></dl></div></div>
+          <div class="l-actions" id="lAct"><button class="m-btn" id="lFlip">Antwort zeigen</button></div>`;
+        bindBack();
+        $('lFlip').onclick = ()=>{ $('lAns').hidden = false; $('lAct').innerHTML = '<button class="m-btn secondary" id="lNo">Nicht gewusst</button><button class="m-btn" id="lYes">Gewusst</button>';
+          const ans = async ok=>{ $('lNo').disabled = $('lYes').disabled = true; if(ok) right++; await record2(w, ok); i++; next(); };
+          $('lNo').onclick = ()=> ans(false); $('lYes').onclick = ()=> ans(true); };
+        return;
+      }
+      root().innerHTML = head + `<div class="l-card"><div class="qs">${esc(q.prompt)}</div><div class="q">${esc(q.q)}</div></div>
+        <div class="l-opts">${q.opts.map((o, k)=> `<button class="l-opt" data-k="${k}">${esc(o)}</button>`).join('')}</div><div class="l-actions" id="lNext"></div>`;
+      bindBack();
+      root().querySelectorAll('.l-opt').forEach(b=> b.onclick = ()=>{
+        const ok = q.opts[b.dataset.k] === q.right;
+        root().querySelectorAll('.l-opt').forEach(x=>{ x.disabled = true; if(q.opts[x.dataset.k] === q.right) x.classList.add('right'); });
+        if(!ok) b.classList.add('wrong'); else right++;
+        $('lNext').innerHTML = '<button class="m-btn" id="lGo">' + (i + 1 < todo.length ? 'Weiter' : 'Ergebnis') + '</button>';
+        const done = record2(w, ok);
+        $('lGo').onclick = async ()=>{ await done; i++; next(); };
+      });
+    };
+    next();
   }
 
   /* ---------- Karteikarten (Leitner) ---------- */
@@ -1418,7 +1886,7 @@ const Learn = (function(){
 /* ---- admin.js ---- */
 /* ================= VERWALTEN: Weinliste, Bearbeiten, Team ================= */
 const Admin = (function(){
-  let filter = { q: '', mode: 'all' };
+  let filter = { q: '', mode: 'all' }, featuredId = null;
 
   function reset(){ filter = { q: '', mode: 'all' }; $('viewAdmin').innerHTML = ''; }
 
@@ -1438,6 +1906,7 @@ const Admin = (function(){
           <button class="tool-btn" id="admNew">＋ Wein hinzufügen</button>
           <button class="tool-btn" id="admImport">▲ Weinkarte (PDF) importieren</button>
           <button class="tool-btn" id="admNotes">▲ Geschmacks-PDF importieren</button>
+          <button class="tool-btn" id="admTasks">Lernaufgaben</button>
           <button class="tool-btn quiet" id="admTeam" ${isOwner() ? '' : 'hidden'}>Team</button>
         </div>
         <div class="adm-tools">
@@ -1446,22 +1915,31 @@ const Admin = (function(){
             <option value="all">Alle Weine</option>
             <option value="nomap">Nicht auf der Karte</option>
             <option value="inactive">Ausgeblendet</option>
-            <option value="nonote">Ohne Geschmacksnotizen</option>
+            <option value="nonote">Ohne Geschmacksprofil</option><option value="draft">Profil nicht freigegeben</option>
           </select>
         </div>
         <div id="admList"></div>`;
       $('admNew').onclick = ()=> edit(null);
       $('admImport').onclick = ()=> Importer.open();
       $('admNotes').onclick = ()=> Importer.openNotes();
+      $('admTasks').onclick = tasks;
       $('admTeam').onclick = team;
       $('admQ').oninput = e=>{ filter.q = e.target.value; renderList(); };
       $('admMode').onchange = e=>{ filter.mode = e.target.value; renderList(); };
       $('admList').addEventListener('click', e=>{
-        const b = e.target.closest('[data-edit]'); if(b) edit(b.dataset.edit);
+        const b = e.target.closest('[data-edit]'); if(b) return edit(b.dataset.edit);
+        const p = e.target.closest('[data-prof]'); if(p) return profileEdit(p.dataset.prof);
+        const f = e.target.closest('[data-feat]');
+        if(f) guard(async ()=>{
+          const id = f.dataset.feat, off = featuredId === id;
+          await Api.rpc('set_featured', { p_restaurant: S.rid, p_wine: off ? null : id });
+          featuredId = off ? null : id; renderList(); toast(off ? 'Wein der Woche entfernt.' : 'Wein der Woche gesetzt.');
+        });
       });
     }
     $('admList').innerHTML = '<div class="adm-empty">Lädt …</div>';
     await ensureWines(true);
+    featuredId = await Api.rpc('get_featured', { p_restaurant: S.rid }).catch(()=> null);
     renderList();
   }
 
@@ -1471,7 +1949,8 @@ const Admin = (function(){
     const rows = list.filter(w=>{
       if(filter.mode === 'nomap' && w.region_id) return false;
       if(filter.mode === 'inactive' && w.is_active) return false;
-      if(filter.mode === 'nonote' && hasNotes(w)) return false;
+      if(filter.mode === 'nonote' && (w.profile || hasNotes(w))) return false;
+      if(filter.mode === 'draft' && !(w.profile && w.profile.status === 'draft')) return false;
       if(!q) return true;
       return [w.label, w.producer, w.country, w.region, w.origin_country, w.origin_region, w.site].some(v=> v && String(v).toLowerCase().includes(q));
     });
@@ -1481,13 +1960,13 @@ const Admin = (function(){
     }
     if(!rows.length){ box.innerHTML = '<div class="adm-empty">Keine Treffer.</div>'; return; }
     box.innerHTML = `<table class="wtable"><thead><tr>
-        <th>Wein</th><th>Herkunft</th><th class="num" style="text-align:right">Preis</th><th class="hide-s">Notizen</th><th></th></tr></thead><tbody>`
+        <th>Wein</th><th>Herkunft</th><th class="num" style="text-align:right">Preis</th><th class="hide-s">Profil</th><th></th></tr></thead><tbody>`
       + rows.map(w=> `<tr class="${w.is_active ? '' : 'off'}">
           <td>${esc(w.label)}<span class="sub">${esc(w.producer)}${w.is_active ? '' : '<span class="badge">ausgeblendet</span>'}</span></td>
           <td>${originText(w)}</td>
           <td class="num">${fmtPrice(w.price)}</td>
-          <td class="hide-s">${hasNotes(w) ? '✓' : '<span class="nonote">–</span>'}</td>
-          <td class="act"><button class="btn-s" data-edit="${esc(w.id)}">Bearbeiten</button></td></tr>`).join('')
+          <td class="hide-s">${profileStatus(w)}</td>
+          <td class="act"><button class="btn-s" data-feat="${esc(w.id)}" title="${featuredId === w.id ? 'Wein der Woche entfernen' : 'Zum Wein der Woche machen'}" aria-label="Wein der Woche">${featuredId === w.id ? '★' : '☆'}</button> <button class="btn-s" data-prof="${esc(w.id)}">Profil</button> <button class="btn-s" data-edit="${esc(w.id)}">Bearbeiten</button></td></tr>`).join('')
       + `</tbody></table><p class="l-sub" style="margin-top:12px">${rows.length} von ${list.length} Weinen</p>`;
   }
 
@@ -1614,7 +2093,345 @@ const Admin = (function(){
     try{ await render(); }catch(e){ body.innerHTML = `<div class="m-status err">${esc(e.message)}</div>`; }
   }
 
+
+  /* ---------- Geschmacksprofil bearbeiten / freigeben ---------- */
+  const SCALE_FIELDS = [['body', 'Körper', ['leicht', 'mittel', 'kräftig']], ['acidity', 'Säure', ['niedrig', 'mittel', 'hoch']],
+    ['tannin', 'Tannine', ['weich', 'mittel', 'kräftig']], ['sweetness', 'Süße', ['trocken', 'halbtrocken', 'süß']],
+    ['fruit', 'Frucht', ['dezent', 'mittel', 'intensiv']], ['minerality', 'Mineralität', ['wenig', 'mittel', 'ausgeprägt']],
+    ['oak', 'Holz', ['kein/wenig', 'leicht', 'deutlich']]];
+  const lines = a=> (a || []).join('\n');
+  const toList = (t, sep)=> String(t || '').split(sep).map(x=> x.trim()).filter(Boolean);
+
+  function profileStatus(w){
+    if(!w.profile) return '<span class="nonote">–</span>';
+    return w.profile.status === 'approved' ? '<span class="badge" style="color:#8fcf9d;border-color:#4f8a5c">freigegeben</span>' : '<span class="badge">Entwurf</span>';
+  }
+
+  function profileEdit(id){
+    const w = S.wines.find(x=> x.id === id); if(!w) return;
+    const p = w.profile || {};
+    const scale = ([k, lab, names])=> `<label class="m-label">${lab}<select class="m-select" data-pk="${k}">
+      <option value="">unbekannt</option>${[1, 2, 3, 4, 5].map(v=> `<option value="${v}" ${Number(p[k]) === v ? 'selected' : ''}>${v}${v === 1 ? ' – ' + names[0] : v === 3 ? ' – ' + names[1] : v === 5 ? ' – ' + names[2] : ''}</option>`).join('')}</select></label>`;
+    Modal.open('Geschmacksprofil', w.label, `
+      <p class="m-note" style="margin-top:0">${esc(w.producer)}. Nur Angaben eintragen, die du sicher weißt oder belegen kannst; alles andere auf „unbekannt“ lassen.
+      Mitarbeiter sehen das Profil erst, wenn es freigegeben ist.</p>
+      <div class="m-grid">
+        <label class="m-label">Farbe<select class="m-select" id="pColor"><option value="">unbekannt</option>
+          ${Object.keys(SearchCore.COLORS).map(k=> `<option value="${k}" ${p.color === k ? 'selected' : ''}>${SearchCore.COLORS[k]}</option>`).join('')}
+          <option value="orange" ${p.color === 'orange' ? 'selected' : ''}>Orange</option><option value="suess" ${p.color === 'suess' ? 'selected' : ''}>Süßwein</option></select></label>
+        <label class="m-label">Alkohol (% vol.)<input class="m-field" id="pAbv" inputmode="decimal" value="${p.abv != null ? esc(String(p.abv).replace('.', ',')) : ''}"></label>
+      </div>
+      <label class="m-label">Rebsorten (mit Komma trennen)<input class="m-field" id="pGrapes" value="${esc((p.grapes || []).join(', '))}"></label>
+      <div class="s-sub">Skalen 1–5</div>
+      <div class="m-grid">${SCALE_FIELDS.map(scale).join('')}</div>
+      <label class="m-label">Aromen (mit Komma trennen)<input class="m-field" id="pAromas" value="${esc((p.aromas || []).join(', '))}"></label>
+      <div class="m-grid">
+        <label class="m-label">Abgang<input class="m-field" id="pFinish" maxlength="200" value="${esc(p.finish || '')}"></label>
+        <label class="m-label">Trinktemperatur<input class="m-field" id="pTemp" maxlength="60" placeholder="z. B. 16–18 °C" value="${esc(p.serving_temp || '')}"></label>
+      </div>
+      <label class="m-label">Ausbau / Reifung<input class="m-field" id="pAging" maxlength="300" value="${esc(p.aging || '')}"></label>
+      <label class="m-label">Passende Speisen (mit Komma trennen)<input class="m-field" id="pFood" value="${esc((p.pairing_dishes || []).join(', '))}"></label>
+      <label class="m-label">Fachliche Beschreibung<textarea class="m-field" id="pTech" maxlength="1500">${esc(p.description_tech || '')}</textarea></label>
+      <label class="m-label">Service-Beschreibung (so sagt es der Kellner dem Gast)<textarea class="m-field" id="pServ" maxlength="600">${esc(p.description_service || '')}</textarea></label>
+      <label class="m-label">Verkaufsargumente (eins pro Zeile)<textarea class="m-field" id="pSell" maxlength="800">${esc(lines(p.selling_points))}</textarea></label>
+      <label class="m-label">Empfehlungssatz für den Gast<input class="m-field" id="pHint" maxlength="300" value="${esc(p.guest_hint || '')}"></label>
+      <label class="m-check" style="margin-top:14px"><input type="checkbox" id="pApprove" ${p.status === 'approved' ? 'checked' : ''}> Freigeben (für Mitarbeiter sichtbar)</label>
+      <div id="pSrc"></div>
+      <div class="m-actions">
+        <button class="m-btn secondary" id="pCancel">Abbrechen</button>
+        <button class="m-btn" id="pSave">Speichern</button>
+      </div>
+      <div class="m-status err" id="pErr"></div>`);
+
+    renderSources(w.id);
+    $('pCancel').onclick = Modal.close;
+    $('pSave').onclick = async ()=>{
+      const err = $('pErr'); err.textContent = '';
+      const abv = $('pAbv').value.trim().replace(',', '.');
+      if(abv && !(Number(abv) >= 0 && Number(abv) <= 25)) return err.textContent = 'Der Alkoholgehalt muss zwischen 0 und 25 liegen.';
+      const prof = {
+        color: $('pColor').value, abv, grapes: toList($('pGrapes').value, ','), aromas: toList($('pAromas').value, ','),
+        finish: $('pFinish').value, serving_temp: $('pTemp').value, aging: $('pAging').value,
+        pairing_dishes: toList($('pFood').value, ','), description_tech: $('pTech').value, description_service: $('pServ').value,
+        selling_points: toList($('pSell').value, '\n'), guest_hint: $('pHint').value
+      };
+      document.querySelectorAll('[data-pk]').forEach(s=> prof[s.dataset.pk] = s.value);
+      // Herkunftsstatus: bestehende Einträge behalten, neu gefüllte Felder als "vom Restaurant eingegeben" markieren
+      const prov = Object.assign({}, p.provenance || {});
+      Object.keys(prof).forEach(k=>{
+        const v = prof[k], filled = Array.isArray(v) ? v.length : String(v).trim() !== '';
+        if(filled && !prov[k]) prov[k] = { src: 'restaurant', at: new Date().toISOString().slice(0, 10) };
+        if(!filled) delete prov[k];
+      });
+      prof.provenance = prov;
+      $('pSave').disabled = true;
+      try{
+        await Api.rpc('save_profile', { p_wine: w.id, p: prof, p_approve: $('pApprove').checked });
+        winesChanged(); Modal.close(); toast($('pApprove') ? 'Profil gespeichert.' : 'Profil gespeichert.'); await show();
+      }catch(e){ err.textContent = e.message; }
+      finally{ const b = $('pSave'); if(b) b.disabled = false; }
+    };
+  }
+
+  const KIND = { producer: 'Weingut', datasheet: 'Datenblatt', importer: 'Importeur', retailer: 'Händler', external: 'Sonstige' };
+  async function renderSources(wineId){
+    const box = $('pSrc'); if(!box) return;
+    let rows = [];
+    try{ rows = await Api.rpc('get_sources', { p_wine: wineId }); }catch(e){ rows = []; }
+    if(!$('pSrc')) return;
+    box.innerHTML = `<div class="s-sub">Quellen</div>
+      ${rows.length ? rows.map(s=> `<div class="team-row"><span class="grow"><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--gold-bright)">${esc(s.title || s.url)}</a>
+        <span class="badge">${esc(KIND[s.kind] || s.kind)}</span><span class="l-sub"> · abgerufen ${esc(s.retrieved_at)}</span></span>
+        <button type="button" class="btn-s danger" data-delsrc="${esc(s.id)}">Entfernen</button></div>`).join('') : '<p class="l-sub" style="margin:0 0 8px">Noch keine Quelle hinterlegt.</p>'}
+      <div class="m-grid">
+        <label class="m-label">Link (https://…)<input class="m-field" id="srcUrl" maxlength="500"></label>
+        <label class="m-label">Art<select class="m-select" id="srcKind">${Object.keys(KIND).map(k=> `<option value="${k}">${KIND[k]}</option>`).join('')}</select></label>
+      </div>
+      <button type="button" class="btn-s" id="srcAdd" style="margin-top:8px">Quelle hinzufügen</button>`;
+    box.querySelectorAll('[data-delsrc]').forEach(b=> b.onclick = async ()=>{ await guard(()=> Api.rpc('delete_source', { p_source: b.dataset.delsrc })); renderSources(wineId); });
+    $('srcAdd').onclick = async ()=>{
+      const url = $('srcUrl').value.trim();
+      if(!/^https?:\/\//i.test(url)) return toast('Bitte einen Link mit https:// eintragen.', true);
+      await guard(()=> Api.rpc('add_source', { p_wine: wineId, p_url: url, p_title: '', p_kind: $('srcKind').value, p_reliability: null }));
+      renderSources(wineId);
+    };
+  }
+
+
+  /* ---------- Lernaufgaben (Geschäftsführung) ---------- */
+  const fmtDate = d=> d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'ohne Frist';
+
+  async function tasks(){
+    const body = Modal.open('Lernaufgaben', 'Aufgaben und Fortschritt', '<div class="adm-empty">Lädt …</div>');
+    const render = async ()=>{
+      const ov = await Api.rpc('get_task_overview', { p_restaurant: S.rid });
+      const now = Date.now();
+      body.innerHTML = `
+        <div class="m-actions" style="justify-content:flex-start;margin:0 0 12px"><button class="m-btn" id="tkNew">＋ Neue Aufgabe</button></div>
+        ${ov.length ? ov.map(t=>{
+          const total = t.wine_count, fin = t.assignees.filter(a=> a.completed_at).length;
+          const late = t.due_at && new Date(t.due_at).getTime() < now && fin < t.assignees.length;
+          return `<div class="card" style="padding:14px 16px">
+            <div class="team-row" style="border:none;padding:0"><span class="grow"><b>${esc(t.title)}</b><br><span class="l-sub">${total} Weine · Frist ${esc(fmtDate(t.due_at))}${late ? ' · <span style="color:#e08a96">überfällig</span>' : ''}</span></span>
+              <span class="badge">${fin} / ${t.assignees.length} fertig</span><button class="btn-s danger" data-deltask="${esc(t.id)}">Löschen</button></div>
+            <div style="margin-top:8px">${t.assignees.map(a=>{
+              const pct = total ? Math.round(a.done / total * 100) : 0;
+              const rate = a.attempts ? Math.round(a.correct / a.attempts * 100) + ' % Trefferquote' : 'nicht begonnen';
+              return `<div class="lb-row" style="padding:6px 0"><span class="nm">${esc(a.name)}<div class="l-bar" style="margin:4px 0 0"><i style="width:${pct}%"></i></div></span>
+                <span class="sm" style="text-align:right">${a.completed_at ? '✓ fertig' : a.done + ' / ' + total}<br>${esc(rate)}</span></div>`;
+            }).join('')}</div></div>`;
+        }).join('') : '<div class="adm-empty">Noch keine Aufgaben. Lege die erste an, z. B. „Diese 5 Rotweine bis Freitag“.</div>'}`;
+      $('tkNew').onclick = newTask;
+      body.querySelectorAll('[data-deltask]').forEach(b=> b.onclick = async ()=>{
+        if(!confirm('Aufgabe samt Fortschritt wirklich löschen?')) return;
+        await guard(()=> Api.rpc('delete_task', { p_task: b.dataset.deltask })); render();
+      });
+    };
+    try{ await render(); }catch(e){ body.innerHTML = `<div class="m-status err">${esc(e.message)}</div>`; }
+    Admin._renderTasks = render;
+  }
+
+  async function newTask(){
+    await ensureWines();
+    let team = []; try{ team = await Api.rpc('get_team', { p_restaurant: S.rid }); }catch(e){ toast(e.message, true); return; }
+    const wines = (S.wines || []).filter(w=> w.is_active);
+    const cats = [...new Set(wines.map(w=> (w.country || w.origin_country || '')).filter(Boolean))].sort((a, b)=> a.localeCompare(b, 'de'));
+    Modal.open('Neue Lernaufgabe', 'Wer lernt was bis wann?', `
+      <label class="m-label">Titel<input class="m-field" id="ntTitle" maxlength="120" placeholder="z. B. Fünf neue Rotweine"></label>
+      <div class="m-grid">
+        <label class="m-label">Frist (optional)<input class="m-field" type="date" id="ntDue"></label>
+        <label class="m-label">Hinweis (optional)<input class="m-field" id="ntDesc" maxlength="300"></label>
+      </div>
+      <div class="s-sub">Weine <span class="l-sub" id="ntCount"></span></div>
+      <div class="m-grid">
+        <input class="m-field" id="ntQ" type="search" placeholder="Wein suchen …" style="margin-top:0">
+        <select class="m-select" id="ntCountry" style="margin-top:0"><option value="">alle Länder</option>${cats.map(c=> `<option>${esc(c)}</option>`).join('')}</select>
+      </div>
+      <div style="margin:8px 0"><button type="button" class="btn-s" id="ntAll">Alle angezeigten wählen</button> <button type="button" class="btn-s" id="ntNone">Keine</button></div>
+      <div class="review-list" id="ntList" style="max-height:34vh"></div>
+      <div class="s-sub">Zugewiesen an</div>
+      <label class="m-check"><input type="checkbox" id="ntAllTeam" checked> Gesamtes Team (${team.length} Personen)</label>
+      <div id="ntTeam" hidden style="margin-top:6px">${team.map(t=> `<label class="m-check" style="margin:4px 0"><input type="checkbox" value="${esc(t.user_id)}"> ${esc(t.name)}</label>`).join('')}</div>
+      <div class="m-actions"><button class="m-btn secondary" id="ntCancel">Abbrechen</button><button class="m-btn" id="ntSave">Aufgabe anlegen</button></div>
+      <div class="m-status err" id="ntErr"></div>`);
+    const picked = new Set();
+    const draw = ()=>{
+      const q = $('ntQ').value.trim().toLowerCase(), c = $('ntCountry').value;
+      const rows = wines.filter(w=> (!c || (w.country || w.origin_country) === c) && (!q || (w.label + ' ' + w.producer + ' ' + (w.region || w.origin_region || '')).toLowerCase().includes(q))).slice(0, 150);
+      $('ntList').innerHTML = rows.map(w=> `<label class="rev-row" style="grid-template-columns:24px 1fr;cursor:pointer"><input type="checkbox" data-w="${esc(w.id)}" ${picked.has(w.id) ? 'checked' : ''} style="width:auto">
+        <span>${esc(w.label)}<span class="l-sub"> · ${esc(w.producer)}</span></span></label>`).join('') || '<div class="adm-empty">Keine Weine.</div>';
+      $('ntCount').textContent = '· ' + picked.size + ' gewählt';
+    };
+    $('ntList').onchange = e=>{ const c = e.target.closest('[data-w]'); if(!c) return; c.checked ? picked.add(c.dataset.w) : picked.delete(c.dataset.w); $('ntCount').textContent = '· ' + picked.size + ' gewählt'; };
+    $('ntQ').oninput = draw; $('ntCountry').onchange = draw;
+    $('ntAll').onclick = ()=>{ document.querySelectorAll('#ntList [data-w]').forEach(c=>{ c.checked = true; picked.add(c.dataset.w); }); $('ntCount').textContent = '· ' + picked.size + ' gewählt'; };
+    $('ntNone').onclick = ()=>{ picked.clear(); draw(); };
+    $('ntAllTeam').onchange = e=>{ $('ntTeam').hidden = e.target.checked; };
+    $('ntCancel').onclick = ()=> tasks();
+    draw();
+    $('ntSave').onclick = async ()=>{
+      const err = $('ntErr'); err.textContent = '';
+      const title = $('ntTitle').value.trim();
+      if(!title) return err.textContent = 'Bitte einen Titel eintragen.';
+      if(!picked.size) return err.textContent = 'Bitte mindestens einen Wein wählen.';
+      let users = null;
+      if(!$('ntAllTeam').checked){
+        users = [...document.querySelectorAll('#ntTeam input:checked')].map(c=> c.value);
+        if(!users.length) return err.textContent = 'Bitte mindestens eine Person wählen oder „Gesamtes Team“.';
+      }
+      const due = $('ntDue').value ? new Date($('ntDue').value + 'T23:59:00').toISOString() : null;
+      $('ntSave').disabled = true;
+      try{
+        await Api.rpc('create_task', { p_restaurant: S.rid, p_title: title, p_due: due, p_wine_ids: [...picked], p_user_ids: users, p_description: $('ntDesc').value.trim() || null });
+        toast('Aufgabe angelegt.'); tasks();
+      }catch(e){ err.textContent = e.message; $('ntSave').disabled = false; }
+    };
+  }
+
   return { show, reset };
+})();
+
+/* ---- tableparse.js ---- */
+/* ================= TABELLEN-IMPORT (CSV / Excel), ohne KI und ohne Kosten ================= */
+const TableParse = (function(){
+  const norm = t=> String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, ' ').trim();
+
+  /* ---------- CSV ---------- */
+  function csv(text){
+    text = String(text).replace(/^﻿/, '');
+    const first = text.split(/\r?\n/).find(l=> l.trim()) || '';
+    const cnt = ch=> (first.match(new RegExp(ch === '\t' ? '\\t' : '\\' + ch, 'g')) || []).length;
+    const delim = [';', '\t', ','].sort((a, b)=> cnt(b) - cnt(a))[0];
+    const rows = []; let row = [], cur = '', q = false;
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(q){
+        if(c === '"'){ if(text[i + 1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c;
+      }else if(c === '"') q = true;
+      else if(c === delim){ row.push(cur); cur = ''; }
+      else if(c === '\n' || c === '\r'){ if(c === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+      else cur += c;
+    }
+    if(cur !== '' || row.length){ row.push(cur); rows.push(row); }
+    return rows.filter(r=> r.some(x=> String(x).trim() !== ''));
+  }
+
+  /* ---------- XLSX (nur das erste Tabellenblatt; Zip + XML ohne Fremdbibliothek) ---------- */
+  const u16 = (b, o)=> b[o] | (b[o + 1] << 8), u32 = (b, o)=> (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+  async function inflate(bytes){
+    const ds = new DecompressionStream('deflate-raw');
+    const w = ds.writable.getWriter(); w.write(bytes); w.close();
+    return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+  async function unzip(buf){
+    const b = new Uint8Array(buf);
+    let e = -1;
+    for(let i = b.length - 22; i >= Math.max(0, b.length - 65557); i--) if(u32(b, i) === 0x06054b50){ e = i; break; }
+    if(e < 0) throw new Error('Die Datei ist keine gültige Excel-Datei (.xlsx).');
+    const n = u16(b, e + 10); let p = u32(b, e + 16); const files = {};
+    const dec = new TextDecoder();
+    for(let k = 0; k < n; k++){
+      if(u32(b, p) !== 0x02014b50) break;
+      const method = u16(b, p + 10), csize = u32(b, p + 20), nl = u16(b, p + 28), el = u16(b, p + 30), cl = u16(b, p + 32), lo = u32(b, p + 42);
+      const name = dec.decode(b.subarray(p + 46, p + 46 + nl));
+      files[name] = { method, csize, lo };
+      p += 46 + nl + el + cl;
+    }
+    return async name=>{
+      const f = files[name]; if(!f) return null;
+      const o = f.lo, dataStart = o + 30 + u16(b, o + 26) + u16(b, o + 28);
+      const raw = b.subarray(dataStart, dataStart + f.csize);
+      if(f.method === 0) return dec.decode(raw);
+      if(f.method === 8) return dec.decode(await inflate(raw));
+      throw new Error('Nicht unterstützte Excel-Komprimierung.');
+    };
+  }
+  const unesc = s=> s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (m, d)=> String.fromCodePoint(+d)).replace(/&#x([0-9a-f]+);/gi, (m, h)=> String.fromCodePoint(parseInt(h, 16))).replace(/&amp;/g, '&');
+  const textOf = x=> { let o = ''; x.replace(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g, (m, t)=> (o += unesc(t))); return o; };
+  const colIdx = ref=> { const l = /^[A-Z]+/.exec(ref)[0]; let n = 0; for(const c of l) n = n * 26 + c.charCodeAt(0) - 64; return n - 1; };
+
+  async function xlsx(buf){
+    const get = await unzip(buf);
+    const sst = await get('xl/sharedStrings.xml'), strings = [];
+    if(sst) sst.replace(/<si(?:\s[^>]*)?>([\s\S]*?)<\/si>/g, (m, x)=> strings.push(textOf(x)));
+    let sheet = await get('xl/worksheets/sheet1.xml');
+    if(!sheet) throw new Error('Kein Tabellenblatt in der Excel-Datei gefunden.');
+    const rows = [];
+    sheet.replace(/<row\b[^>]*>([\s\S]*?)<\/row>/g, (m, rx)=>{
+      const r = [];
+      rx.replace(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g, (mm, attrs, inner)=>{
+        const ref = /\br="([A-Z]+\d+)"/.exec(attrs); if(!ref || inner == null) return;
+        const t = (/\bt="(\w+)"/.exec(attrs) || [])[1], v = /<v>([\s\S]*?)<\/v>/.exec(inner);
+        let val = '';
+        if(t === 's') val = v ? (strings[+v[1]] || '') : '';
+        else if(t === 'inlineStr') val = textOf(inner);
+        else if(v) val = unesc(v[1]);
+        r[colIdx(ref[1])] = val;
+      });
+      rows.push(Array.from(r, x=> x == null ? '' : x));
+    });
+    return rows.filter(r=> r.some(x=> String(x).trim() !== ''));
+  }
+
+  /* ---------- Spalten erkennen und in das Import-Format bringen ---------- */
+  const HEAD = {
+    producer: ['erzeuger', 'weingut', 'produzent', 'winzer', 'producer', 'winery', 'domaine', 'haus'],
+    label:    ['wein', 'weinname', 'bezeichnung', 'name', 'cuvee', 'label', 'artikel', 'produkt', 'lage'],
+    vintage:  ['jahrgang', 'jahr', 'vintage', 'jg'],
+    grape:    ['rebsorte', 'rebsorten', 'traube', 'grape', 'sorte', 'cepage'],
+    price:    ['preis', 'flaschenpreis', 'vk', 'verkaufspreis', 'price', 'preis eur', 'preis 0 75'],
+    country:  ['land', 'herkunftsland', 'country'],
+    region:   ['region', 'gebiet', 'anbaugebiet', 'herkunft', 'appellation', 'area']
+  };
+  const COUNTRY = { germany: 'Deutschland', deutschland: 'Deutschland', france: 'Frankreich', frankreich: 'Frankreich', italy: 'Italien', italien: 'Italien', italia: 'Italien',
+    spain: 'Spanien', spanien: 'Spanien', espana: 'Spanien', portugal: 'Portugal', austria: 'Österreich', osterreich: 'Österreich', oesterreich: 'Österreich',
+    switzerland: 'Schweiz', schweiz: 'Schweiz', 'south africa': 'Südafrika', sudafrika: 'Südafrika', suedafrika: 'Südafrika', usa: 'USA', 'us': 'USA', 'united states': 'USA',
+    australia: 'Australien', australien: 'Australien', 'new zealand': 'Neuseeland', neuseeland: 'Neuseeland', argentina: 'Argentinien', argentinien: 'Argentinien', chile: 'Chile' };
+
+  function mapColumns(header){
+    const map = {};
+    header.forEach((h, i)=>{
+      const n = norm(h);
+      for(const k of Object.keys(HEAD)) if(map[k] == null && HEAD[k].includes(n)){ map[k] = i; break; }
+    });
+    return map;
+  }
+
+  /* rows[0] = Kopfzeile. Ergebnis wie die PDF-Auslese: { gebiete:[{land,gebiet}], weine:[{g,e,w,p}] } */
+  function toWines(rows){
+    if(!rows || rows.length < 2) throw new Error('Die Tabelle ist leer oder hat nur eine Kopfzeile.');
+    const map = mapColumns(rows[0]);
+    if(map.label == null) throw new Error('Keine Spalte für den Weinnamen gefunden. Die Kopfzeile braucht z. B. „Wein“ oder „Bezeichnung“. Erkannt wurden: ' + rows[0].map(x=> '„' + String(x).trim() + '“').join(', '));
+    const cell = (r, k)=> map[k] == null ? '' : String(r[map[k]] == null ? '' : r[map[k]]).trim();
+    const gebiete = [], gIdx = {}, weine = [], skipped = [];
+    for(let n = 1; n < rows.length; n++){
+      const r = rows[n];
+      const parts = [cell(r, 'vintage'), cell(r, 'label'), cell(r, 'grape')].filter(Boolean);
+      if(!cell(r, 'label')){ skipped.push(n + 1); continue; }
+      let land = cell(r, 'country'); land = COUNTRY[norm(land)] || land;
+      const gebiet = cell(r, 'region') || 'Sonstige';
+      const key = land + '|' + gebiet.toLowerCase();
+      if(gIdx[key] == null){ gIdx[key] = gebiete.length; gebiete.push({ land, gebiet }); }
+      let p = cell(r, 'price').replace(/[€\s]|EUR/gi, '');
+      if(/^\d{1,3}(\.\d{3})+,\d+$/.test(p)) p = p.replace(/\./g, '');
+      p = p.replace(',', '.');
+      if(p !== '' && !isFinite(Number(p))) p = '';
+      weine.push({ g: gIdx[key], e: cell(r, 'producer') || '–', w: parts.join(' · '), p });
+    }
+    if(!weine.length) throw new Error('Keine Weine in der Tabelle gefunden.');
+    return { gebiete, weine, skipped, missing: ['producer', 'price', 'country', 'region'].filter(k=> map[k] == null) };
+  }
+
+  const MISSING_NAME = { producer: 'Erzeuger', price: 'Preis', country: 'Land', region: 'Region' };
+
+  async function fromFile(file){
+    if(/\.xlsx$/i.test(file.name)) return toWines(await xlsx(await file.arrayBuffer()));
+    if(/\.xls$/i.test(file.name)) throw new Error('Das alte Excel-Format (.xls) wird nicht unterstützt. Bitte in Excel „Speichern unter“ → .xlsx oder CSV wählen.');
+    return toWines(csv(await file.text()));
+  }
+
+  return { csv, xlsx, toWines, fromFile, MISSING_NAME };
 })();
 
 /* ---- importer.js ---- */
@@ -1773,7 +2590,13 @@ Regeln:
 
     Modal.open('Weinkarte importieren', 'PDF hochladen', `
       <div id="imStep1">
-        <p class="modal-lead">PDF auswählen — die Weine werden automatisch nach Herkunftsland und Anbaugebiet sortiert. Vor dem Speichern prüfst du die Zuordnung.
+        <div class="card" style="padding:14px 16px;margin-bottom:14px">
+          <div class="s-sub" style="margin-top:0">Excel oder CSV <span class="l-sub">· kostenlos, ohne KI</span></div>
+          <p class="m-note" style="margin-top:0">Eine Zeile pro Wein. Kopfzeile mit Spalten wie <b>Erzeuger, Wein, Jahrgang, Rebsorte, Preis, Land, Region</b> (nur „Wein“ ist Pflicht).</p>
+          <label class="m-label">Tabelle (.xlsx oder .csv)<input class="m-field" type="file" id="imTable" accept=".xlsx,.csv,.txt,text/csv"></label>
+          <button class="m-btn" id="imTableRun">Tabelle einlesen</button>
+        </div>
+        <p class="modal-lead">Oder PDF auswählen — die Weine werden automatisch nach Herkunftsland und Anbaugebiet sortiert. Vor dem Speichern prüfst du die Zuordnung.
         Bereits vorhandene Weine werden erkannt (gleicher Erzeuger + gleiche Bezeichnung): Preise werden aktualisiert, Notizen und Lernfortschritt bleiben erhalten.</p>
         <label class="m-label">Weinkarte (PDF, bis 20 MB)<input class="m-field" type="file" id="imFile" accept="application/pdf,.pdf"></label>
         <label class="m-label">Eigener Anthropic-API-Key (optional)
@@ -1798,6 +2621,7 @@ Regeln:
       </div>`);
     $('imBack').onclick = ()=>{ $('imStep1').hidden = false; $('imStep2').hidden = true; };
     $('imRun').onclick = run;
+    $('imTableRun').onclick = runTable;
     $('imApply').onclick = apply;
   }
 
@@ -1821,6 +2645,22 @@ Regeln:
         ? 'Der automatische Server-Dienst ist noch nicht eingerichtet. Bitte einen eigenen Anthropic-API-Key eintragen (siehe Anleitung).'
         : (e.message || 'Unbekannter Fehler.'), true);
     }finally{ const b = $('imRun'); if(b) b.disabled = false; }
+  }
+
+  async function runTable(){
+    const file = $('imTable').files[0];
+    if(!file) return setStatus('Bitte eine Excel- oder CSV-Datei auswählen.', true);
+    if(file.size > 5 * 1024 * 1024) return setStatus('Die Datei ist größer als 5 MB.', true);
+    $('imTableRun').disabled = true; setStatus('Tabelle wird gelesen …');
+    try{
+      parsed = await TableParse.fromFile(file);
+      renderReview(); setStatus('');
+      const extra = (parsed.skipped.length ? ' ' + parsed.skipped.length + ' Zeile(n) ohne Weinnamen übersprungen.' : '')
+        + (parsed.missing.length ? ' Nicht gefunden: ' + parsed.missing.map(k=> TableParse.MISSING_NAME[k]).join(', ') + '.' : '');
+      $('imSummary').textContent += extra;
+      $('imStep1').hidden = true; $('imStep2').hidden = false;
+    }catch(e){ setStatus(e.message || 'Die Tabelle konnte nicht gelesen werden.', true); }
+    finally{ const b = $('imTableRun'); if(b) b.disabled = false; }
   }
 
   const OTHER = '__other__';
@@ -2116,7 +2956,29 @@ $('userBtn').addEventListener('click', ()=>{
       <button class="m-btn secondary" id="acOut">Abmelden</button>
       <button class="m-btn" id="acSave">Speichern</button>
     </div>
-    <div class="m-status" id="acMsg"></div>`);
+    <div class="m-status" id="acMsg"></div>
+    <div class="s-sub">Datenschutz</div>
+    <p class="m-note" style="margin-top:0">Gespeichert werden E-Mail, Anzeigename, Lernfortschritt und Quiz-Ergebnisse. Die Funktion „PDF auslesen“ sendet das hochgeladene PDF zur Auswertung an einen KI-Dienst (Anthropic); sie wird nur von Inhabern und Bearbeitern ausgelöst.</p>
+    <div class="m-actions" style="justify-content:flex-start">
+      <button class="m-btn secondary" id="acExport">Meine Daten herunterladen</button>
+      <button class="m-btn secondary" id="acDelete" style="color:#e08a96">Konto löschen</button>
+    </div>`);
+  $('acExport').onclick = async ()=>{
+    const msg = $('acMsg'); msg.classList.remove('err'); msg.textContent = '';
+    try{
+      const d = await Api.rpc('export_my_data', {});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
+      a.download = 'weinatlas-meine-daten.json'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+    }catch(err){ msg.textContent = err.message; msg.classList.add('err'); }
+  };
+  $('acDelete').onclick = async ()=>{
+    const msg = $('acMsg'); msg.classList.remove('err'); msg.textContent = '';
+    if(!confirm('Konto endgültig löschen? Dein Lernfortschritt und deine Ergebnisse werden gelöscht. Das kann nicht rückgängig gemacht werden.')) return;
+    try{ await Api.rpc('delete_my_account', {}); Modal.close(); Api.signOut(); }
+    catch(err){ msg.textContent = err.message; msg.classList.add('err'); }
+  };
   $('acOut').onclick = ()=>{ Modal.close(); Api.signOut(); };
   $('acSave').onclick = async ()=>{
     const msg = $('acMsg'); msg.classList.remove('err'); msg.textContent = '';
@@ -2137,7 +2999,7 @@ function updateUserBtn(){
 async function startApp(){
   S.tab = 'map';
   showScreen('app');
-  Learn.reset(); Admin.reset();
+  Learn.reset(); Admin.reset(); Search.reset();
   S.wines = null; S.regions = null; S.shapes = null; S.atlasDirty = true;
   const [list, prof] = await Promise.all([
     guard(()=> Api.rpc('get_my_restaurants'), 'Restaurants laden'),
@@ -2160,7 +3022,7 @@ function fillRestSelect(){
 $('restSelect').addEventListener('change', e=> selectRestaurant(e.target.value));
 
 function renderNoRestaurant(){
-  ['viewMap','viewLearn','viewAdmin'].forEach(id=> show(id, false));
+  ['viewMap','viewSearch','viewLearn','viewAdmin'].forEach(id=> show(id, false));
   $('tabs').hidden = true; $('restSelect').hidden = true;
   let box = $('noRest');
   if(!box){
@@ -2197,7 +3059,7 @@ async function selectRestaurant(rid){
   $('restSelect').value = rid;
   $('tabAdmin').hidden = !isEditor();
   S.wines = null; S.atlasDirty = true;
-  Learn.reset(); Admin.reset();
+  Learn.reset(); Admin.reset(); Search.reset();
   const title = r.city ? `${r.name}` : r.name;
   $('mapTitle').textContent = 'Der Weinatlas';
   $('subtitle').textContent = `Die Weinkarte von ${title}: jedes Land führt zu seinen Anbaugebieten auf einer Landkarte, jedes Gebiet zu den Erzeugern und Weinen der Karte.`;
@@ -2260,10 +3122,11 @@ async function switchTab(tab, force){
   if(tab === 'admin' && !isEditor()) tab = 'map';
   S.tab = tab;
   document.querySelectorAll('#tabs button').forEach(b=> b.classList.toggle('active', b.dataset.tab === tab));
-  show('viewMap', tab === 'map'); show('viewLearn', tab === 'learn'); show('viewAdmin', tab === 'admin');
+  show('viewMap', tab === 'map'); show('viewSearch', tab === 'search'); show('viewLearn', tab === 'learn'); show('viewAdmin', tab === 'admin');
   window.scrollTo(0, 0);
   if(tab !== 'map') Atlas.reset();
   if(tab === 'map' && S.atlasDirty) await guard(loadAtlas, 'Karte laden');
+  if(tab === 'search') await guard(()=> Search.show(), 'Suche');
   if(tab === 'learn') await guard(()=> Learn.show(), 'Lernen');
   if(tab === 'admin') await guard(()=> Admin.show(), 'Verwalten');
 }
@@ -2277,7 +3140,7 @@ Api.onChange(sess=>{
   /* Abgemeldet: alle Daten aus dem Speicher und von der Seite entfernen */
   S.restaurants = []; S.rid = null; S.role = null; S.wines = null; S.regions = null; S.shapes = null; S.profile = null; S.tab = 'map';
   Atlas.load({}, {}, { name: '', city: '' }); renderExtra([]);
-  Learn.reset(); Admin.reset(); Modal.close();
+  Learn.reset(); Admin.reset(); Search.reset(); Modal.close();
   showScreen('login');
 });
 (async function boot(){
