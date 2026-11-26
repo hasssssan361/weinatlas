@@ -18,11 +18,12 @@ const Admin = (function(){
         <div class="adm-head">
           <h2>Weinkarte verwalten</h2>
           <button class="tool-btn" id="admNew">＋ Wein hinzufügen</button>
-          <button class="tool-btn" id="admImport">▲ Weinkarte (PDF) importieren</button>
+          <button class="tool-btn" id="admImport">▲ Weinkarte importieren (PDF/Excel/CSV)</button>
           <button class="tool-btn" id="admNotes">▲ Geschmacks-PDF importieren</button>
           <button class="tool-btn" id="admTasks">Lernaufgaben</button>
           <button class="tool-btn quiet" id="admTeam" ${isOwner() ? '' : 'hidden'}>Team</button>
         </div>
+        <div id="admSetup"></div>
         <div class="adm-tools">
           <input id="admQ" type="search" placeholder="Suchen (Wein, Erzeuger, Gebiet) …">
           <select id="admMode">
@@ -55,6 +56,52 @@ const Admin = (function(){
     await ensureWines(true);
     featuredId = await Api.rpc('get_featured', { p_restaurant: S.rid }).catch(()=> null);
     renderList();
+    renderSetup();
+  }
+
+
+  /* ---------- Einrichtung (Onboarding) und Tarif ---------- */
+  const PLAN_NAME = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+  const dismissKey = ()=> 'weinatlas_setup_' + S.rid;
+  async function renderSetup(){
+    const box = $('admSetup'); if(!box) return;
+    const rid = S.rid;
+    let ent = null, taskCount = 0;
+    try{
+      ent = await Api.rpc('get_entitlements', { p_restaurant: rid });
+      if(ent.limits.tasks) taskCount = (await Api.rpc('get_task_overview', { p_restaurant: rid }).catch(()=> [])).length;
+    }catch(e){ box.innerHTML = ''; return; }
+    if(rid !== S.rid || !$('admSetup')) return;
+    const wines = S.wines || [];
+    const approved = wines.filter(w=> w.profile && w.profile.status === 'approved').length;
+    const steps = [
+      { done: true, text: 'Restaurant angelegt' },
+      { done: wines.length > 0, text: 'Weinkarte importieren (PDF, Excel oder CSV)', act: 'admImport', btn: 'Importieren' },
+      { done: wines.some(w=> w.region_id), text: 'Zuordnung prüfen: Weine erscheinen auf der Karte', act: null },
+      { done: approved > 0, text: 'Mindestens ein Geschmacksprofil freigeben (Suche und Lernen nutzen nur Freigegebenes)', act: null },
+      { done: ent.usage.members > 1, text: 'Team einladen', act: 'admTeam', btn: 'Team', owner: true },
+      ...(ent.limits.tasks ? [{ done: taskCount > 0, text: 'Erste Lernaufgabe anlegen', act: 'admTasks', btn: 'Aufgaben' }] : [])
+    ];
+    const open = steps.filter(x=> !x.done).length;
+    let dismissed = false; try{ dismissed = localStorage.getItem(dismissKey()) === '1'; }catch(e){}
+    const pct = (u, l)=> l == null ? 0 : Math.min(100, Math.round(u / l * 100));
+    const meter = (lab, u, l)=> `<div class="lb-row" style="padding:4px 0"><span class="nm">${lab}<div class="l-bar" style="margin:4px 0 0"><i style="width:${pct(u, l)}%"></i></div></span><span class="sm" style="text-align:right">${u}${l == null ? ' (unbegrenzt)' : ' / ' + l}</span></div>`;
+    box.innerHTML = `
+      ${open && !dismissed ? `<div class="card" style="padding:14px 16px;margin-bottom:12px">
+        <div class="team-row" style="border:none;padding:0"><span class="grow"><b>Einrichtung</b> <span class="l-sub">· ${steps.length - open} von ${steps.length} erledigt</span></span><button class="btn-s" id="setupHide">Ausblenden</button></div>
+        ${steps.map(x=> `<div class="team-row" style="padding:6px 0"><span class="grow">${x.done ? '✓' : '○'} <span style="${x.done ? 'opacity:.6' : ''}">${esc(x.text)}</span></span>
+          ${!x.done && x.act && (!x.owner || isOwner()) ? `<button class="btn-s" data-setup="${x.act}">${esc(x.btn)}</button>` : ''}</div>`).join('')}
+      </div>` : ''}
+      <details class="card" style="padding:10px 16px;margin-bottom:12px"><summary style="cursor:pointer"><b>Tarif: ${esc(PLAN_NAME[ent.plan] || ent.plan)}</b> <span class="l-sub">· Nutzung und Grenzen</span></summary>
+        <div style="margin-top:8px">
+          ${meter('Weine', ent.usage.wines, ent.limits.wines)}
+          ${meter('Teammitglieder', ent.usage.members, ent.limits.members)}
+          ${meter('PDF-Auslesen (Monat)', ent.usage.imports, ent.limits.imports)}
+          <div class="l-sub" style="margin-top:6px">Lernaufgaben: ${ent.limits.tasks ? 'enthalten' : 'nicht im Tarif'} · Automatische Recherche: ${ent.limits.research ? 'enthalten' : 'nicht im Tarif'}.
+          Tarifwechsel bitte beim Anbieter anfragen.</div>
+        </div></details>`;
+    const hide = $('setupHide'); if(hide) hide.onclick = ()=>{ try{ localStorage.setItem(dismissKey(), '1'); }catch(e){} renderSetup(); };
+    box.querySelectorAll('[data-setup]').forEach(b=> b.onclick = ()=> $(b.dataset.setup).click());
   }
 
   function renderList(){
@@ -214,6 +261,7 @@ const Admin = (function(){
     ['fruit', 'Frucht', ['dezent', 'mittel', 'intensiv']], ['minerality', 'Mineralität', ['wenig', 'mittel', 'ausgeprägt']],
     ['oak', 'Holz', ['kein/wenig', 'leicht', 'deutlich']]];
   const lines = a=> (a || []).join('\n');
+  const originOf = w=> [w.region || w.origin_region, w.country || w.origin_country].filter(Boolean).join(', ');
   const toList = (t, sep)=> String(t || '').split(sep).map(x=> x.trim()).filter(Boolean);
 
   function profileStatus(w){
@@ -245,6 +293,8 @@ const Admin = (function(){
       </div>
       <label class="m-label">Ausbau / Reifung<input class="m-field" id="pAging" maxlength="300" value="${esc(p.aging || '')}"></label>
       <label class="m-label">Passende Speisen (mit Komma trennen)<input class="m-field" id="pFood" value="${esc((p.pairing_dishes || []).join(', '))}"></label>
+      <div style="margin:14px 0 0"><button type="button" class="btn-s" id="pGen">Texte aus den Angaben vorschlagen</button>
+        <span class="l-sub"> · regelbasiert, ohne KI; nutzt nur ausgefüllte Felder und füllt nur leere Textfelder</span></div>
       <label class="m-label">Fachliche Beschreibung<textarea class="m-field" id="pTech" maxlength="1500">${esc(p.description_tech || '')}</textarea></label>
       <label class="m-label">Service-Beschreibung (so sagt es der Kellner dem Gast)<textarea class="m-field" id="pServ" maxlength="600">${esc(p.description_service || '')}</textarea></label>
       <label class="m-label">Verkaufsargumente (eins pro Zeile)<textarea class="m-field" id="pSell" maxlength="800">${esc(lines(p.selling_points))}</textarea></label>
@@ -258,6 +308,23 @@ const Admin = (function(){
       <div class="m-status err" id="pErr"></div>`);
 
     renderSources(w.id);
+    const genKeys = new Set(), edited = new Set();      // Felder, deren Text vorgeschlagen und danach nicht verändert wurde
+    const TXT = { description_tech: 'pTech', description_service: 'pServ', selling_points: 'pSell', guest_hint: 'pHint' };
+    Object.keys(TXT).forEach(k=> $(TXT[k]).addEventListener('input', ()=>{ genKeys.delete(k); edited.add(k); }));
+    $('pGen').onclick = ()=>{
+      const cur = {
+        color: $('pColor').value, abv: $('pAbv').value.trim().replace(',', '.'), grapes: toList($('pGrapes').value, ','), aromas: toList($('pAromas').value, ','),
+        finish: $('pFinish').value, serving_temp: $('pTemp').value, aging: $('pAging').value, pairing_dishes: toList($('pFood').value, ',')
+      };
+      document.querySelectorAll('[data-pk]').forEach(s=> cur[s.dataset.pk] = s.value);
+      const g = TextGen.compose(cur, { producer: w.producer, origin: originOf(w) });
+      let filled = 0;
+      for(const k of Object.keys(TXT)){
+        const el = $(TXT[k]), val = k === 'selling_points' ? lines(g[k]) : g[k];
+        if(val && !el.value.trim()){ el.value = val; genKeys.add(k); filled++; }
+      }
+      toast(filled ? filled + ' Textfeld' + (filled === 1 ? '' : 'er') + ' vorgeschlagen — bitte prüfen und anpassen.' : 'Nichts vorgeschlagen: Textfelder sind schon gefüllt oder es fehlen Angaben.', !filled);
+    };
     $('pCancel').onclick = Modal.close;
     $('pSave').onclick = async ()=>{
       const err = $('pErr'); err.textContent = '';
@@ -274,7 +341,8 @@ const Admin = (function(){
       const prov = Object.assign({}, p.provenance || {});
       Object.keys(prof).forEach(k=>{
         const v = prof[k], filled = Array.isArray(v) ? v.length : String(v).trim() !== '';
-        if(filled && !prov[k]) prov[k] = { src: 'restaurant', at: new Date().toISOString().slice(0, 10) };
+        if(filled && genKeys.has(k)) prov[k] = { src: 'generated', at: new Date().toISOString().slice(0, 10) };
+        else if(filled && (!prov[k] || edited.has(k))) prov[k] = { src: 'restaurant', at: new Date().toISOString().slice(0, 10) };
         if(!filled) delete prov[k];
       });
       prof.provenance = prov;

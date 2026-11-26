@@ -28,6 +28,7 @@ Fehlermeldungen wie „already exists“ bei den ersten Dateien sind harmlos, we
 | 3 | `datenbank/import_stammdaten.sql` | Anbaugebiete, Gebietsflächen, Lagen |
 | (nach den Importen) | `datenbank/migrations/003_profile_tasks_plans.sql` | Geschmacksprofil, Freigabe, Lernaufgaben, Wein der Woche, Tarife (darf mehrfach laufen; bestehende Restaurants werden auf den Tarif „enterprise“ gesetzt) |
 | (danach) | `datenbank/migrations/004_datenschutz.sql` | Daten herunterladen und Konto löschen (Konto-Menü in der App); darf mehrfach laufen |
+| (danach) | `datenbank/migrations/005_restaurant_limit.sql` | Höchstens 3 Restaurants pro Konto (Missbrauchsschutz); darf mehrfach laufen |
 | 4 | `datenbank/privat/import_chefs_warehouse.sql` | Weinkarte Chefs Warehouse |
 | 5 | `datenbank/privat/import_estancia.sql` | Weinkarte Estancia Steakhaus |
 | 6 | `datenbank/privat/import_zugang.sql` | verknüpft **dein Konto** mit den Restaurants (vorher `DEINE@EMAIL.DE` durch deine Login-E-Mail ersetzen) |
@@ -120,3 +121,19 @@ Testkonten dort: `chef@test.de`, `kellner@test.de`, `cw@test.de` (Passwort `test
 
 ## Weine aus Excel oder CSV importieren (kostenlos, ohne KI)
 Verwalten → „Weinkarte importieren“ → oben „Excel oder CSV“. Erste Zeile = Spaltennamen, z. B. `Erzeuger, Wein, Jahrgang, Rebsorte, Preis, Land, Region` (nur „Wein“ ist Pflicht; „Name“, „Bezeichnung“, „Weingut“, „Gebiet“ usw. werden ebenfalls erkannt). Es wird das erste Tabellenblatt gelesen; das alte Format .xls bitte als .xlsx oder CSV speichern. Danach folgt dieselbe Prüfung wie beim PDF-Import.
+
+## KI-Suche „Wunsch als Satz“ einrichten (optional, kostet pro Suche Bruchteile eines Cents)
+Ohne diese Einrichtung funktioniert die Filtersuche normal; das Satzfeld meldet dann „noch nicht eingerichtet“.
+1. Voraussetzung: der Server-Dienst fürs PDF-Auslesen ist eingerichtet (gleicher `ANTHROPIC_API_KEY`-Secret, siehe oben).
+2. Edge Function anlegen: `supabase/functions/ai-search/index.ts` als neue Funktion `ai-search` deployen (gleiches Vorgehen wie `extract-winelist`).
+3. Optional Secret `ALLOWED_ORIGIN` = `https://hasssssan361.github.io` (erlaubt nur diese Seite) und `ANTHROPIC_SEARCH_MODEL` (Standard: kleines, günstiges Modell).
+4. Das Monatskontingent kommt aus dem Tarif (`plan_limits.ai_search_month`: Starter 100, Professional 1000, Enterprise unbegrenzt).
+
+## Tarif eines Restaurants ändern (bis Zahlung eingerichtet ist, siehe ZAHLUNG.md)
+Im Supabase-SQL-Editor: `update public.restaurants set plan = 'professional' where name = 'Name';` (`starter`, `professional`, `enterprise`). Neue Restaurants starten mit `starter`.
+
+## Texte für Datenschutz, Impressum, AGB
+Siehe Ordner `rechtliches/` (Vorlagen, bitte prüfen lassen).
+
+## Tests
+`datenbank/tests`: `npm install`, dann `node t2_rpc.mjs`, `t3_…`, `t4_…`, `t5_…`, `t6_audit.mjs` (Sicherheits-Audit). App-Logik: `node app/tests/searchcore.test.mjs`, `tableparse.test.mjs`, `textgen.test.mjs`.

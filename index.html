@@ -1381,7 +1381,90 @@ const SearchCore = (function(){
     return (where ? 'Aus ' + where + ': ' : '') + bits.join(', ') + '.';
   }
 
-  return { SCALES, COLORS, LEVELS, evaluate, search, explain, pitch, isActive, colorOf, norm };
+  /* Antwort der KI-Suche (ungeprüft!) in sichere Kriterien umwandeln: nur bekannte Schlüssel und Werte. */
+  function sanitizeCriteria(raw){
+    const out = { important: {} };
+    if(!raw || typeof raw !== 'object') return out;
+    const str = v => typeof v === 'string' ? v.trim().slice(0, 60) : '';
+    if(Object.prototype.hasOwnProperty.call(COLORS, raw.color)) out.color = raw.color;
+    const pm = Number(raw.priceMax); if(isFinite(pm) && pm > 0 && pm < 100000) out.priceMax = pm;
+    for(const k of ['grape', 'country', 'region', 'aroma', 'food']){ const v = str(raw[k]); if(v) out[k] = v; }
+    for(const k of Object.keys(SCALES)) if(['low', 'mid', 'high'].includes(raw[k])) out[k] = raw[k];
+    if(Array.isArray(raw.important)) raw.important.forEach(k => { if(SCALES[k] && out[k]) out.important[k] = true; });
+    return out;
+  }
+
+  return { SCALES, COLORS, LEVELS, evaluate, search, explain, pitch, isActive, colorOf, norm, sanitizeCriteria };
+})();
+
+/* ---- textgen.js ---- */
+/* ================= TEXTE AUS GEPRÜFTEN ANGABEN ERZEUGEN (regelbasiert, ohne KI, ohne Kosten) =================
+   Verwendet ausschließlich Felder, die ausgefüllt sind. Unbekanntes wird nie ergänzt oder geraten. */
+const TextGen = (function(){
+  const COLOR = { rot: 'Rotwein', weiss: 'Weißwein', rose: 'Roséwein', schaum: 'Schaumwein', orange: 'Orangewein', suess: 'Süßwein' };
+  const LV = {   // Wortlaut je Skala: [niedrig, mittel, hoch]
+    body:     ['leicht', 'mittelkräftig', 'kraftvoll'],
+    acidity:  ['mild', 'ausgewogen', 'frisch'],
+    tannin:   ['weich', 'moderat', 'kräftig strukturiert'],
+    sweet:    ['trocken', 'halbtrocken', 'deutlich süß'],
+    fruit:    ['zurückhaltend fruchtig', 'fruchtig', 'sehr fruchtbetont'],
+    mineral:  ['wenig mineralisch', 'leicht mineralisch', 'ausgeprägt mineralisch'],
+    oak:      ['ohne spürbares Holz', 'mit leichtem Holzeinsatz', 'mit deutlichem Holzeinfluss']
+  };
+  const LABEL = { body: 'Körper', acidity: 'Säure', tannin: 'Tannin', sweet: 'Süße', fruit: 'Frucht', mineral: 'Mineralik', oak: 'Holz' };
+  const lvl = v=> { v = Number(v); return v <= 2 ? 0 : v === 3 ? 1 : 2; };
+  const known = (p, k)=> p[k] != null && p[k] !== '' && Number(p[k]) >= 1 && Number(p[k]) <= 5;
+  const list = a=> a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' und ' + a[a.length - 1];
+  const cap = s=> s.charAt(0).toUpperCase() + s.slice(1);
+
+  /* p = Profil (color, grapes[], abv, Skalen, aromas[], finish, serving_temp, aging, pairing_dishes[]), w = Wein (producer, origin) */
+  function compose(p, w){
+    const grapes = (p.grapes || []).filter(Boolean), aromas = (p.aromas || []).filter(Boolean), dishes = (p.pairing_dishes || []).filter(Boolean);
+    const origin = (w && w.origin) || '';
+    const color = COLOR[p.color] || '';
+    const scales = Object.keys(LV).filter(k=> known(p, k));
+
+    const tech = [];
+    const head = [color || 'Wein', grapes.length ? 'aus ' + list(grapes) : '', origin ? 'von ' + (w.producer && w.producer !== '–' ? w.producer + ', ' : '') + origin : (w && w.producer && w.producer !== '–' ? 'von ' + w.producer : '')].filter(Boolean).join(' ');
+    tech.push(head + '.');
+    if(scales.length) tech.push(scales.map(k=> LABEL[k] + ' ' + LV[k][lvl(p[k])]).join(', ') + '.');
+    if(aromas.length) tech.push('Aromen: ' + list(aromas) + '.');
+    if(p.finish) tech.push('Abgang: ' + String(p.finish).trim().replace(/[.!]+$/, '') + '.');
+    if(p.aging) tech.push('Ausbau: ' + String(p.aging).trim().replace(/[.!]+$/, '') + '.');
+    if(p.abv !== '' && p.abv != null && isFinite(Number(p.abv))) tech.push('Alkohol: ' + String(p.abv).replace('.', ',') + ' % vol.');
+    if(p.serving_temp) tech.push('Trinktemperatur: ' + String(p.serving_temp).trim() + '.');
+
+    const serv = [];
+    const feel = [];
+    if(known(p, 'body')) feel.push(LV.body[lvl(p.body)]);
+    if(known(p, 'acidity') && lvl(p.acidity) !== 1) feel.push(LV.acidity[lvl(p.acidity)]);
+    if(known(p, 'tannin') && lvl(p.tannin) !== 1) feel.push(LV.tannin[lvl(p.tannin)]);
+    if(known(p, 'sweet') && lvl(p.sweet) !== 1) feel.push(LV.sweet[lvl(p.sweet)]);
+    if(color || origin || grapes.length) serv.push('Ein ' + (color || 'Wein') + (grapes.length ? ' aus ' + list(grapes) : '') + (origin ? ' aus ' + origin : '') + (feel.length ? ' – ' + list(feel) : '') + '.');
+    if(aromas.length) serv.push('Im Glas ' + list(aromas.slice(0, 4)) + '.');
+    if(dishes.length) serv.push('Passt sehr gut zu ' + list(dishes.slice(0, 3)) + '.');
+
+    const sell = [];
+    if(known(p, 'acidity') && lvl(p.acidity) === 2) sell.push('Frisch und lebendig durch die deutliche Säure');
+    if(known(p, 'tannin') && lvl(p.tannin) === 0) sell.push('Weich im Mund, sehr zugänglich');
+    if(known(p, 'tannin') && lvl(p.tannin) === 2) sell.push('Kräftige Struktur, ideal zu gehaltvollen Speisen');
+    if(known(p, 'body') && lvl(p.body) === 0) sell.push('Leicht und unkompliziert zu trinken');
+    if(known(p, 'body') && lvl(p.body) === 2) sell.push('Kraftvoller, vollmundiger Charakter');
+    if(known(p, 'mineral') && lvl(p.mineral) === 2) sell.push('Ausgeprägte Mineralik');
+    if(aromas.length >= 2) sell.push('Aromen von ' + list(aromas.slice(0, 3)));
+    if(dishes.length) sell.push('Passt zu ' + list(dishes.slice(0, 2)));
+    if(p.aging) sell.push('Ausbau: ' + String(p.aging).trim().replace(/[.!]+$/, ''));
+
+    let hint = '';
+    if(color && (feel.length || aromas.length)) hint = 'Für Gäste, die ' + color + ' mögen' + (feel.length ? ' (' + list(feel.slice(0, 2)) + ')' : '') + (aromas.length ? ' – mit Noten von ' + list(aromas.slice(0, 2)) : '') + '.';
+    return {
+      description_tech: tech.length > 1 ? tech.join(' ') : '',
+      description_service: serv.join(' '),
+      selling_points: sell.slice(0, 3),
+      guest_hint: hint.length <= 300 ? hint : ''
+    };
+  }
+  return { compose };
 })();
 
 /* ---- search.js ---- */
@@ -1420,6 +1503,12 @@ const Search = (function(){
     root().innerHTML = `
       <div class="l-head"><h2>Weinberatung</h2><div class="l-sub">Was wünscht sich der Gast? Gesucht wird nur im Sortiment dieses Restaurants.</div></div>
       <div id="sFeat">${featuredHtml()}</div>
+      <div class="card" style="padding:12px 16px;margin-bottom:12px">
+        <div class="s-sub" style="margin-top:0">Wunsch als Satz <span class="l-sub">· KI übersetzt ihn in Filter</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><input class="l-search" id="sAi" maxlength="300" style="flex:1 1 220px;margin:0" placeholder="z. B. leicht und fruchtig, unter 60 €, passt zu Fisch" autocomplete="off"><button type="button" class="m-btn" id="sAiGo">Filter setzen</button></div>
+        <div class="m-status" id="sAiMsg" role="status"></div>
+        <div class="l-sub">Nur dieser Satz wird zur Auswertung an den KI-Dienst gesendet, keine Weine und keine Personendaten. Gesucht wird danach wie gewohnt nur im eigenen Sortiment. Zählt gegen das Monatskontingent des Tarifs.</div>
+      </div>
       <div class="card s-form">
         <input class="l-search" id="sQ" type="search" placeholder="Stichwort (z. B. Riesling, Mosel, Kirsche) …" autocomplete="off">
         <div class="s-colors" id="sColors" role="group" aria-label="Weinfarbe">
@@ -1462,12 +1551,51 @@ const Search = (function(){
       const k = b.dataset.star; crit.important[k] = !crit.important[k];
       b.classList.toggle('on', !!crit.important[k]); b.setAttribute('aria-pressed', String(!!crit.important[k])); run();
     });
+    r.querySelector('#sAiGo').onclick = aiSearch;
+    r.querySelector('#sAi').onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); aiSearch(); } };
     r.querySelector('#sReset').onclick = ()=>{ reset(); build(); };
     r.querySelector('#sRes').onclick = e=>{
       if(e.target.closest('#sMore')){ shown += 20; run(); }
       const c = e.target.closest('.s-card'); if(c && !e.target.closest('a,button')) c.classList.toggle('open');
     };
     fillCountries(); run();
+  }
+
+
+  /* Kriterien in die Eingabefelder übernehmen */
+  function applyCrit(c){
+    crit = c; shown = 20;
+    const set = (id, v)=>{ const el = $(id); if(el) el.value = v == null ? '' : v; };
+    set('sQ', ''); set('sPrice', c.priceMax); set('sGrape', c.grape); set('sAroma', c.aroma); set('sFood', c.food);
+    root().querySelectorAll('#sColors button').forEach(b=> b.classList.toggle('on', (b.dataset.color || '') === (c.color || '')));
+    fillCountries();
+    set('sCountry', c.country); set('sRegion', c.region);
+    root().querySelectorAll('select[data-k]').forEach(sel=> sel.value = c[sel.dataset.k] || '');
+    root().querySelectorAll('[data-star]').forEach(b=>{ const on = !!c.important[b.dataset.star]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    run();
+  }
+
+  async function aiSearch(){
+    const q = $('sAi').value.trim(), msg = $('sAiMsg'), btn = $('sAiGo');
+    msg.classList.remove('err'); msg.textContent = '';
+    if(q.length < 3){ msg.textContent = 'Bitte den Wunsch kurz beschreiben.'; msg.classList.add('err'); return; }
+    btn.disabled = true; msg.textContent = 'Wird ausgewertet …';
+    try{
+      const res = await Api.fn('ai-search', { restaurant_id: S.rid, query: q });
+      let j = null; try{ j = await res.json(); }catch(e){}
+      if(res.status === 404) throw new Error('Die KI-Suche ist noch nicht eingerichtet. Die Filter unten funktionieren trotzdem.');
+      if(!res.ok) throw new Error((j && j.error) || 'Die KI-Suche ist gerade nicht erreichbar.');
+      const c = SearchCore.sanitizeCriteria(j && j.criteria);
+      if(!SearchCore.isActive(c)) throw new Error('Daraus konnte ich keine Filter ableiten. Bitte anders formulieren.');
+      applyCrit(c);
+      const names = [];
+      if(c.color) names.push(SearchCore.COLORS[c.color]);
+      Object.keys(SearchCore.SCALES).forEach(k=>{ if(c[k]) names.push(SearchCore.SCALES[k].label + ' ' + SearchCore.SCALES[k].names[c[k]]); });
+      if(c.priceMax) names.push('bis ' + c.priceMax + ' €');
+      ['grape', 'country', 'region', 'aroma', 'food'].forEach(k=>{ if(c[k]) names.push(c[k]); });
+      msg.textContent = 'Gesetzte Filter: ' + names.join(' · ') + '. Unten lassen sich alle Filter noch ändern.';
+    }catch(e){ msg.textContent = e.message; msg.classList.add('err'); }
+    finally{ btn.disabled = false; }
   }
 
   /* Wein der Woche: nur belegte/freigegebene Angaben */
@@ -1904,11 +2032,12 @@ const Admin = (function(){
         <div class="adm-head">
           <h2>Weinkarte verwalten</h2>
           <button class="tool-btn" id="admNew">＋ Wein hinzufügen</button>
-          <button class="tool-btn" id="admImport">▲ Weinkarte (PDF) importieren</button>
+          <button class="tool-btn" id="admImport">▲ Weinkarte importieren (PDF/Excel/CSV)</button>
           <button class="tool-btn" id="admNotes">▲ Geschmacks-PDF importieren</button>
           <button class="tool-btn" id="admTasks">Lernaufgaben</button>
           <button class="tool-btn quiet" id="admTeam" ${isOwner() ? '' : 'hidden'}>Team</button>
         </div>
+        <div id="admSetup"></div>
         <div class="adm-tools">
           <input id="admQ" type="search" placeholder="Suchen (Wein, Erzeuger, Gebiet) …">
           <select id="admMode">
@@ -1941,6 +2070,52 @@ const Admin = (function(){
     await ensureWines(true);
     featuredId = await Api.rpc('get_featured', { p_restaurant: S.rid }).catch(()=> null);
     renderList();
+    renderSetup();
+  }
+
+
+  /* ---------- Einrichtung (Onboarding) und Tarif ---------- */
+  const PLAN_NAME = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+  const dismissKey = ()=> 'weinatlas_setup_' + S.rid;
+  async function renderSetup(){
+    const box = $('admSetup'); if(!box) return;
+    const rid = S.rid;
+    let ent = null, taskCount = 0;
+    try{
+      ent = await Api.rpc('get_entitlements', { p_restaurant: rid });
+      if(ent.limits.tasks) taskCount = (await Api.rpc('get_task_overview', { p_restaurant: rid }).catch(()=> [])).length;
+    }catch(e){ box.innerHTML = ''; return; }
+    if(rid !== S.rid || !$('admSetup')) return;
+    const wines = S.wines || [];
+    const approved = wines.filter(w=> w.profile && w.profile.status === 'approved').length;
+    const steps = [
+      { done: true, text: 'Restaurant angelegt' },
+      { done: wines.length > 0, text: 'Weinkarte importieren (PDF, Excel oder CSV)', act: 'admImport', btn: 'Importieren' },
+      { done: wines.some(w=> w.region_id), text: 'Zuordnung prüfen: Weine erscheinen auf der Karte', act: null },
+      { done: approved > 0, text: 'Mindestens ein Geschmacksprofil freigeben (Suche und Lernen nutzen nur Freigegebenes)', act: null },
+      { done: ent.usage.members > 1, text: 'Team einladen', act: 'admTeam', btn: 'Team', owner: true },
+      ...(ent.limits.tasks ? [{ done: taskCount > 0, text: 'Erste Lernaufgabe anlegen', act: 'admTasks', btn: 'Aufgaben' }] : [])
+    ];
+    const open = steps.filter(x=> !x.done).length;
+    let dismissed = false; try{ dismissed = localStorage.getItem(dismissKey()) === '1'; }catch(e){}
+    const pct = (u, l)=> l == null ? 0 : Math.min(100, Math.round(u / l * 100));
+    const meter = (lab, u, l)=> `<div class="lb-row" style="padding:4px 0"><span class="nm">${lab}<div class="l-bar" style="margin:4px 0 0"><i style="width:${pct(u, l)}%"></i></div></span><span class="sm" style="text-align:right">${u}${l == null ? ' (unbegrenzt)' : ' / ' + l}</span></div>`;
+    box.innerHTML = `
+      ${open && !dismissed ? `<div class="card" style="padding:14px 16px;margin-bottom:12px">
+        <div class="team-row" style="border:none;padding:0"><span class="grow"><b>Einrichtung</b> <span class="l-sub">· ${steps.length - open} von ${steps.length} erledigt</span></span><button class="btn-s" id="setupHide">Ausblenden</button></div>
+        ${steps.map(x=> `<div class="team-row" style="padding:6px 0"><span class="grow">${x.done ? '✓' : '○'} <span style="${x.done ? 'opacity:.6' : ''}">${esc(x.text)}</span></span>
+          ${!x.done && x.act && (!x.owner || isOwner()) ? `<button class="btn-s" data-setup="${x.act}">${esc(x.btn)}</button>` : ''}</div>`).join('')}
+      </div>` : ''}
+      <details class="card" style="padding:10px 16px;margin-bottom:12px"><summary style="cursor:pointer"><b>Tarif: ${esc(PLAN_NAME[ent.plan] || ent.plan)}</b> <span class="l-sub">· Nutzung und Grenzen</span></summary>
+        <div style="margin-top:8px">
+          ${meter('Weine', ent.usage.wines, ent.limits.wines)}
+          ${meter('Teammitglieder', ent.usage.members, ent.limits.members)}
+          ${meter('PDF-Auslesen (Monat)', ent.usage.imports, ent.limits.imports)}
+          <div class="l-sub" style="margin-top:6px">Lernaufgaben: ${ent.limits.tasks ? 'enthalten' : 'nicht im Tarif'} · Automatische Recherche: ${ent.limits.research ? 'enthalten' : 'nicht im Tarif'}.
+          Tarifwechsel bitte beim Anbieter anfragen.</div>
+        </div></details>`;
+    const hide = $('setupHide'); if(hide) hide.onclick = ()=>{ try{ localStorage.setItem(dismissKey(), '1'); }catch(e){} renderSetup(); };
+    box.querySelectorAll('[data-setup]').forEach(b=> b.onclick = ()=> $(b.dataset.setup).click());
   }
 
   function renderList(){
@@ -2100,6 +2275,7 @@ const Admin = (function(){
     ['fruit', 'Frucht', ['dezent', 'mittel', 'intensiv']], ['minerality', 'Mineralität', ['wenig', 'mittel', 'ausgeprägt']],
     ['oak', 'Holz', ['kein/wenig', 'leicht', 'deutlich']]];
   const lines = a=> (a || []).join('\n');
+  const originOf = w=> [w.region || w.origin_region, w.country || w.origin_country].filter(Boolean).join(', ');
   const toList = (t, sep)=> String(t || '').split(sep).map(x=> x.trim()).filter(Boolean);
 
   function profileStatus(w){
@@ -2131,6 +2307,8 @@ const Admin = (function(){
       </div>
       <label class="m-label">Ausbau / Reifung<input class="m-field" id="pAging" maxlength="300" value="${esc(p.aging || '')}"></label>
       <label class="m-label">Passende Speisen (mit Komma trennen)<input class="m-field" id="pFood" value="${esc((p.pairing_dishes || []).join(', '))}"></label>
+      <div style="margin:14px 0 0"><button type="button" class="btn-s" id="pGen">Texte aus den Angaben vorschlagen</button>
+        <span class="l-sub"> · regelbasiert, ohne KI; nutzt nur ausgefüllte Felder und füllt nur leere Textfelder</span></div>
       <label class="m-label">Fachliche Beschreibung<textarea class="m-field" id="pTech" maxlength="1500">${esc(p.description_tech || '')}</textarea></label>
       <label class="m-label">Service-Beschreibung (so sagt es der Kellner dem Gast)<textarea class="m-field" id="pServ" maxlength="600">${esc(p.description_service || '')}</textarea></label>
       <label class="m-label">Verkaufsargumente (eins pro Zeile)<textarea class="m-field" id="pSell" maxlength="800">${esc(lines(p.selling_points))}</textarea></label>
@@ -2144,6 +2322,23 @@ const Admin = (function(){
       <div class="m-status err" id="pErr"></div>`);
 
     renderSources(w.id);
+    const genKeys = new Set(), edited = new Set();      // Felder, deren Text vorgeschlagen und danach nicht verändert wurde
+    const TXT = { description_tech: 'pTech', description_service: 'pServ', selling_points: 'pSell', guest_hint: 'pHint' };
+    Object.keys(TXT).forEach(k=> $(TXT[k]).addEventListener('input', ()=>{ genKeys.delete(k); edited.add(k); }));
+    $('pGen').onclick = ()=>{
+      const cur = {
+        color: $('pColor').value, abv: $('pAbv').value.trim().replace(',', '.'), grapes: toList($('pGrapes').value, ','), aromas: toList($('pAromas').value, ','),
+        finish: $('pFinish').value, serving_temp: $('pTemp').value, aging: $('pAging').value, pairing_dishes: toList($('pFood').value, ',')
+      };
+      document.querySelectorAll('[data-pk]').forEach(s=> cur[s.dataset.pk] = s.value);
+      const g = TextGen.compose(cur, { producer: w.producer, origin: originOf(w) });
+      let filled = 0;
+      for(const k of Object.keys(TXT)){
+        const el = $(TXT[k]), val = k === 'selling_points' ? lines(g[k]) : g[k];
+        if(val && !el.value.trim()){ el.value = val; genKeys.add(k); filled++; }
+      }
+      toast(filled ? filled + ' Textfeld' + (filled === 1 ? '' : 'er') + ' vorgeschlagen — bitte prüfen und anpassen.' : 'Nichts vorgeschlagen: Textfelder sind schon gefüllt oder es fehlen Angaben.', !filled);
+    };
     $('pCancel').onclick = Modal.close;
     $('pSave').onclick = async ()=>{
       const err = $('pErr'); err.textContent = '';
@@ -2160,7 +2355,8 @@ const Admin = (function(){
       const prov = Object.assign({}, p.provenance || {});
       Object.keys(prof).forEach(k=>{
         const v = prof[k], filled = Array.isArray(v) ? v.length : String(v).trim() !== '';
-        if(filled && !prov[k]) prov[k] = { src: 'restaurant', at: new Date().toISOString().slice(0, 10) };
+        if(filled && genKeys.has(k)) prov[k] = { src: 'generated', at: new Date().toISOString().slice(0, 10) };
+        else if(filled && (!prov[k] || edited.has(k))) prov[k] = { src: 'restaurant', at: new Date().toISOString().slice(0, 10) };
         if(!filled) delete prov[k];
       });
       prof.provenance = prov;

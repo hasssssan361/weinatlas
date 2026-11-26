@@ -9,7 +9,7 @@ root = pathlib.Path(__file__).parent
 src = root / 'src'
 css = ''.join((src / f).read_text(encoding='utf-8') + '\n' for f in ['base.css', 'app.css'])
 js = ''.join('/* ---- ' + f + ' ---- */\n' + (src / f).read_text(encoding='utf-8') + '\n'
-             for f in ['borders.js', 'atlas.js', 'api.js', 'searchcore.js', 'search.js', 'learn.js', 'admin.js', 'tableparse.js', 'importer.js', 'app.js'])
+             for f in ['borders.js', 'atlas.js', 'api.js', 'searchcore.js', 'textgen.js', 'search.js', 'learn.js', 'admin.js', 'tableparse.js', 'importer.js', 'app.js'])
 if '</script' in js.lower():
     sys.exit('FEHLER: "</script" im JavaScript gefunden')
 html = (root / 'template.html').read_text(encoding='utf-8')

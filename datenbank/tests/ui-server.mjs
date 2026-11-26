@@ -11,6 +11,7 @@ await db.exec(readSql('datenbank/import_stammdaten.sql'));
 await db.exec(readSql('datenbank/privat/import_estancia.sql'));
 await db.exec(readSql('datenbank/privat/import_chefs_warehouse.sql'));
 await db.exec(readSql('datenbank/migrations/003_profile_tasks_plans.sql'));
+await db.exec(readSql('datenbank/migrations/005_restaurant_limit.sql'));
 await db.exec(readSql('datenbank/migrations/004_datenschutz.sql'));
 await db.exec(`create table test_pw(email text primary key, password text, id uuid)`);
 
@@ -53,6 +54,12 @@ http.createServer(async (req, res) => {
     }
     if (url.pathname === '/auth/v1/logout' || url.pathname === '/auth/v1/recover') return send(res, 200, {});
     if (url.pathname === '/auth/v1/user') return send(res, 200, { id: untok(req.headers.authorization)?.sub, email: untok(req.headers.authorization)?.email });
+    if (url.pathname.startsWith('/functions/v1/ai-search')) {   // Attrappe: keine echte KI
+      if (!untok(req.headers.authorization)) return send(res, 401, { error: 'x' });
+      const q = String((j && j.query) || '');
+      if (/quota/i.test(q)) return send(res, 429, { error: 'Das KI-Suchkontingent dieses Monats ist aufgebraucht.' });
+      return send(res, 200, { criteria: /rot/i.test(q) ? { color: 'rot', priceMax: 80, body: 'low', important: ['body'], evil: '<x>', tannin: 'zzz' } : { foo: 1 } });
+    }
     if (url.pathname.startsWith('/functions/v1/extract-winelist')) {
       const u = untok(req.headers.authorization); if (!u) return send(res, 401, { error: 'x' });
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', ...cors });

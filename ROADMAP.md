@@ -100,3 +100,15 @@ Später: KI-Freitextsuche (Filtersuche genügt für den Start), Wein der Woche, 
 | Standorte | 1 | 1 | mehrere |
 
 Die Preise bestimmst du nach den tatsächlichen KI-Kosten pro Nutzung und deinem Markt.
+
+
+---
+## Stand 2026-11-26 (Update)
+Umgesetzt und getestet: Suche (Filter), Profile mit Freigabe und Herkunftsstatus, regelbasierte Textvorschläge (ohne KI), Lernaufgaben, Wein der Woche,
+Excel/CSV/PDF-Import, Datenschutz (Export, Löschung, eigene Schriften, CSP), Einrichtungs-Checkliste und Tarif-Anzeige unter Verwalten,
+Restaurant-Limit pro Konto, KI-Suche „Wunsch als Satz“ (Server-Funktion `ai-search`, nicht live ausgeführt), Sicherheits-Audit (`t6_audit.mjs`).
+Vorbereitet, nicht aktiv: Zahlung (ZAHLUNG.md), Rechtstexte (rechtliches/).
+Bewusst NICHT gebaut: automatische Web-Recherche. Gründe: Urheberrecht und Nutzungsbedingungen der Quellen, Qualitätsrisiko (falsche Weindaten wären ein Produktfehler),
+nicht automatisiert testbar. Stattdessen: Quellen manuell hinterlegen (Link, Art, Datum), Profile selbst pflegen oder aus eigenen Dokumenten importieren,
+Texte regelbasiert vorschlagen. Eine spätere Recherche-Funktion nur für ausdrücklich erlaubte Quellen und mit Pflicht-Freigabe.
+Offen: Rechtstexte final, Preise, Stripe-Anbindung, Einrichtung der Server-Funktionen, Live-Test von PDF-Auslesen und KI-Suche, Entscheidung zum öffentlichen Repo (Kundendaten in der Historie).

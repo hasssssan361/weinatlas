@@ -33,6 +33,12 @@ const Search = (function(){
     root().innerHTML = `
       <div class="l-head"><h2>Weinberatung</h2><div class="l-sub">Was wünscht sich der Gast? Gesucht wird nur im Sortiment dieses Restaurants.</div></div>
       <div id="sFeat">${featuredHtml()}</div>
+      <div class="card" style="padding:12px 16px;margin-bottom:12px">
+        <div class="s-sub" style="margin-top:0">Wunsch als Satz <span class="l-sub">· KI übersetzt ihn in Filter</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><input class="l-search" id="sAi" maxlength="300" style="flex:1 1 220px;margin:0" placeholder="z. B. leicht und fruchtig, unter 60 €, passt zu Fisch" autocomplete="off"><button type="button" class="m-btn" id="sAiGo">Filter setzen</button></div>
+        <div class="m-status" id="sAiMsg" role="status"></div>
+        <div class="l-sub">Nur dieser Satz wird zur Auswertung an den KI-Dienst gesendet, keine Weine und keine Personendaten. Gesucht wird danach wie gewohnt nur im eigenen Sortiment. Zählt gegen das Monatskontingent des Tarifs.</div>
+      </div>
       <div class="card s-form">
         <input class="l-search" id="sQ" type="search" placeholder="Stichwort (z. B. Riesling, Mosel, Kirsche) …" autocomplete="off">
         <div class="s-colors" id="sColors" role="group" aria-label="Weinfarbe">
@@ -75,12 +81,51 @@ const Search = (function(){
       const k = b.dataset.star; crit.important[k] = !crit.important[k];
       b.classList.toggle('on', !!crit.important[k]); b.setAttribute('aria-pressed', String(!!crit.important[k])); run();
     });
+    r.querySelector('#sAiGo').onclick = aiSearch;
+    r.querySelector('#sAi').onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); aiSearch(); } };
     r.querySelector('#sReset').onclick = ()=>{ reset(); build(); };
     r.querySelector('#sRes').onclick = e=>{
       if(e.target.closest('#sMore')){ shown += 20; run(); }
       const c = e.target.closest('.s-card'); if(c && !e.target.closest('a,button')) c.classList.toggle('open');
     };
     fillCountries(); run();
+  }
+
+
+  /* Kriterien in die Eingabefelder übernehmen */
+  function applyCrit(c){
+    crit = c; shown = 20;
+    const set = (id, v)=>{ const el = $(id); if(el) el.value = v == null ? '' : v; };
+    set('sQ', ''); set('sPrice', c.priceMax); set('sGrape', c.grape); set('sAroma', c.aroma); set('sFood', c.food);
+    root().querySelectorAll('#sColors button').forEach(b=> b.classList.toggle('on', (b.dataset.color || '') === (c.color || '')));
+    fillCountries();
+    set('sCountry', c.country); set('sRegion', c.region);
+    root().querySelectorAll('select[data-k]').forEach(sel=> sel.value = c[sel.dataset.k] || '');
+    root().querySelectorAll('[data-star]').forEach(b=>{ const on = !!c.important[b.dataset.star]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    run();
+  }
+
+  async function aiSearch(){
+    const q = $('sAi').value.trim(), msg = $('sAiMsg'), btn = $('sAiGo');
+    msg.classList.remove('err'); msg.textContent = '';
+    if(q.length < 3){ msg.textContent = 'Bitte den Wunsch kurz beschreiben.'; msg.classList.add('err'); return; }
+    btn.disabled = true; msg.textContent = 'Wird ausgewertet …';
+    try{
+      const res = await Api.fn('ai-search', { restaurant_id: S.rid, query: q });
+      let j = null; try{ j = await res.json(); }catch(e){}
+      if(res.status === 404) throw new Error('Die KI-Suche ist noch nicht eingerichtet. Die Filter unten funktionieren trotzdem.');
+      if(!res.ok) throw new Error((j && j.error) || 'Die KI-Suche ist gerade nicht erreichbar.');
+      const c = SearchCore.sanitizeCriteria(j && j.criteria);
+      if(!SearchCore.isActive(c)) throw new Error('Daraus konnte ich keine Filter ableiten. Bitte anders formulieren.');
+      applyCrit(c);
+      const names = [];
+      if(c.color) names.push(SearchCore.COLORS[c.color]);
+      Object.keys(SearchCore.SCALES).forEach(k=>{ if(c[k]) names.push(SearchCore.SCALES[k].label + ' ' + SearchCore.SCALES[k].names[c[k]]); });
+      if(c.priceMax) names.push('bis ' + c.priceMax + ' €');
+      ['grape', 'country', 'region', 'aroma', 'food'].forEach(k=>{ if(c[k]) names.push(c[k]); });
+      msg.textContent = 'Gesetzte Filter: ' + names.join(' · ') + '. Unten lassen sich alle Filter noch ändern.';
+    }catch(e){ msg.textContent = e.message; msg.classList.add('err'); }
+    finally{ btn.disabled = false; }
   }
 
   /* Wein der Woche: nur belegte/freigegebene Angaben */

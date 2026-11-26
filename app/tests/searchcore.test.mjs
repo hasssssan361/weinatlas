@@ -87,5 +87,11 @@ ok(/Aus Burgund, Frankreich/.test(S.pitch(pinot)) && !/Cassis/.test(S.pitch(pino
 ok(S.pitch({ ...pinot, profile: { ...pinot.profile, guest_hint: 'Ideal zu Ente.' } }) === 'Ideal zu Ente.', 'pitch bevorzugt freigegebenen Gästesatz');
 ok(S.pitch(bare) === 'Ein Wein aus Burgund, Frankreich.', 'pitch ohne Profil: nur Herkunft');
 
+
+// KI-Antwort wird bereinigt (Schutz vor unerwarteten Werten)
+const cl = S.sanitizeCriteria({ color: 'rot', priceMax: '60', body: 'low', tannin: 'extrem', grape: ' Pinot Noir ', evil: '<script>', important: ['body', 'tannin', 'x'], country: 5 });
+ok(cl.color === 'rot' && cl.priceMax === 60 && cl.body === 'low' && cl.grape === 'Pinot Noir', 'sanitize: gültige Werte übernommen');
+ok(cl.tannin === undefined && cl.evil === undefined && cl.country === undefined && cl.important.body === true && !cl.important.tannin && !cl.important.x, 'sanitize: ungültige Werte verworfen');
+ok(!S.isActive(S.sanitizeCriteria(null)) && !S.isActive(S.sanitizeCriteria({ color: 'blau', priceMax: -3 })), 'sanitize: Müll ergibt leere Suche');
 console.log(fails ? `\n${fails} FEHLER` : '\nALLE TESTS BESTANDEN');
 process.exit(fails ? 1 : 0);

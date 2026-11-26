@@ -173,5 +173,18 @@ const SearchCore = (function(){
     return (where ? 'Aus ' + where + ': ' : '') + bits.join(', ') + '.';
   }
 
-  return { SCALES, COLORS, LEVELS, evaluate, search, explain, pitch, isActive, colorOf, norm };
+  /* Antwort der KI-Suche (ungeprüft!) in sichere Kriterien umwandeln: nur bekannte Schlüssel und Werte. */
+  function sanitizeCriteria(raw){
+    const out = { important: {} };
+    if(!raw || typeof raw !== 'object') return out;
+    const str = v => typeof v === 'string' ? v.trim().slice(0, 60) : '';
+    if(Object.prototype.hasOwnProperty.call(COLORS, raw.color)) out.color = raw.color;
+    const pm = Number(raw.priceMax); if(isFinite(pm) && pm > 0 && pm < 100000) out.priceMax = pm;
+    for(const k of ['grape', 'country', 'region', 'aroma', 'food']){ const v = str(raw[k]); if(v) out[k] = v; }
+    for(const k of Object.keys(SCALES)) if(['low', 'mid', 'high'].includes(raw[k])) out[k] = raw[k];
+    if(Array.isArray(raw.important)) raw.important.forEach(k => { if(SCALES[k] && out[k]) out.important[k] = true; });
+    return out;
+  }
+
+  return { SCALES, COLORS, LEVELS, evaluate, search, explain, pitch, isActive, colorOf, norm, sanitizeCriteria };
 })();
